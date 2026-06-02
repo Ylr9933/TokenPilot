@@ -147,8 +147,11 @@ export async function applyLayeredReductionToInput(
     segmentAnchorByCallId,
     orderedTurnAnchors,
   );
+  const beforeCallCtxPromise = beforeCallModules && cfg
+    ? helpers.applyPolicyBeforeCall(turnCtx, cfg, logger, beforeCallModules)
+    : Promise.resolve({ turnCtx, policyChangedSegmentIds: [] as string[] });
   if (turnCtx.segments.length === 0 || bindings.length === 0) {
-    return {
+    return beforeCallCtxPromise.then(() => ({
       changedItems: 0,
       changedBlocks: 0,
       savedChars: 0,
@@ -165,11 +168,8 @@ export async function applyLayeredReductionToInput(
         passCount: 0,
         skippedReason: stats.candidateBlocks === 0 ? "no_candidate_blocks" : "below_trigger_min_chars",
       },
-    };
+    }));
   }
-  const beforeCallCtxPromise = beforeCallModules && cfg
-    ? helpers.applyPolicyBeforeCall(turnCtx, cfg, logger, beforeCallModules)
-    : Promise.resolve({ turnCtx, policyChangedSegmentIds: [] as string[] });
 
   const passes = resolveReductionPasses({ maxToolChars, passOptions }).filter(
     (p) => p.phase === "before_call" && helpers.isReductionPassEnabled(p.id, passToggles),

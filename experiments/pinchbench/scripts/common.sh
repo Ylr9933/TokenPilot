@@ -252,8 +252,10 @@ ensure_plugin_runtime_config() {
   local task_state_estimator_request_timeout_ms="${TOKENPILOT_TASK_STATE_ESTIMATOR_REQUEST_TIMEOUT_MS:-__KEEP__}"
   local task_state_estimator_batch_turns="${TOKENPILOT_TASK_STATE_ESTIMATOR_BATCH_TURNS:-__KEEP__}"
   local task_state_estimator_eviction_lookahead_turns="${TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_LOOKAHEAD_TURNS:-__KEEP__}"
+  local task_state_estimator_completed_summary_max_raw_turns="${TOKENPILOT_TASK_STATE_ESTIMATOR_COMPLETED_SUMMARY_MAX_RAW_TURNS:-__KEEP__}"
   local task_state_estimator_input_mode="${TOKENPILOT_TASK_STATE_ESTIMATOR_INPUT_MODE:-__KEEP__}"
   local task_state_estimator_lifecycle_mode="${TOKENPILOT_TASK_STATE_ESTIMATOR_LIFECYCLE_MODE:-__KEEP__}"
+  local task_state_estimator_evidence_mode="${TOKENPILOT_TASK_STATE_ESTIMATOR_EVIDENCE_MODE:-__KEEP__}"
   local task_state_estimator_eviction_promotion_policy="${TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_PROMOTION_POLICY:-__KEEP__}"
   local task_state_estimator_eviction_promotion_hot_tail_size="${TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_PROMOTION_HOT_TAIL_SIZE:-__KEEP__}"
   local memory_enabled="${TOKENPILOT_MEMORY_ENABLED:-__KEEP__}"
@@ -271,7 +273,7 @@ ensure_plugin_runtime_config() {
     return 0
   fi
 
-  python3 - "${config_path}" "${proxy_base_url}" "${proxy_api_key}" "${proxy_port}" "${plugin_load_path}" "${proxy_pure_forward}" "${enable_reduction}" "${reduction_trigger_min_chars}" "${reduction_max_tool_chars}" "${reduction_pass_repeated_read_dedup}" "${reduction_pass_tool_payload_trim}" "${reduction_pass_html_slimming}" "${reduction_pass_exec_output_truncation}" "${reduction_pass_agents_startup_optimization}" "${reduction_pass_format_slimming}" "${reduction_pass_format_cleaning}" "${reduction_pass_path_truncation}" "${reduction_pass_image_downsample}" "${reduction_pass_line_number_strip}" "${dynamic_context_target}" "${default_model}" "${exec_host}" "${exec_security}" "${exec_ask}" "${elevated_enabled}" "${elevated_allow_from}" "${enable_eviction}" "${eviction_policy}" "${eviction_min_block_chars}" "${eviction_replacement_mode}" "${task_state_estimator_enabled}" "${task_state_estimator_base_url}" "${task_state_estimator_api_key}" "${task_state_estimator_model}" "${task_state_estimator_request_timeout_ms}" "${task_state_estimator_batch_turns}" "${task_state_estimator_eviction_lookahead_turns}" "${task_state_estimator_input_mode}" "${task_state_estimator_lifecycle_mode}" "${task_state_estimator_eviction_promotion_policy}" "${task_state_estimator_eviction_promotion_hot_tail_size}" "${memory_enabled}" "${memory_auto_distill}" "${memory_distiller_type}" "${memory_batch_size}" "${memory_top_k}" "${memory_inject_as_system_hint}" "${memory_distill_base_url}" "${memory_distill_api_key}" "${memory_distill_model}" "${memory_distill_timeout_ms}" <<'PATCH_PY'
+  python3 - "${config_path}" "${proxy_base_url}" "${proxy_api_key}" "${proxy_port}" "${plugin_load_path}" "${proxy_pure_forward}" "${enable_reduction}" "${reduction_trigger_min_chars}" "${reduction_max_tool_chars}" "${reduction_pass_repeated_read_dedup}" "${reduction_pass_tool_payload_trim}" "${reduction_pass_html_slimming}" "${reduction_pass_exec_output_truncation}" "${reduction_pass_agents_startup_optimization}" "${reduction_pass_format_slimming}" "${reduction_pass_format_cleaning}" "${reduction_pass_path_truncation}" "${reduction_pass_image_downsample}" "${reduction_pass_line_number_strip}" "${dynamic_context_target}" "${default_model}" "${exec_host}" "${exec_security}" "${exec_ask}" "${elevated_enabled}" "${elevated_allow_from}" "${enable_eviction}" "${eviction_policy}" "${eviction_min_block_chars}" "${eviction_replacement_mode}" "${task_state_estimator_enabled}" "${task_state_estimator_base_url}" "${task_state_estimator_api_key}" "${task_state_estimator_model}" "${task_state_estimator_request_timeout_ms}" "${task_state_estimator_batch_turns}" "${task_state_estimator_eviction_lookahead_turns}" "${task_state_estimator_completed_summary_max_raw_turns}" "${task_state_estimator_input_mode}" "${task_state_estimator_lifecycle_mode}" "${task_state_estimator_evidence_mode}" "${task_state_estimator_eviction_promotion_policy}" "${task_state_estimator_eviction_promotion_hot_tail_size}" "${memory_enabled}" "${memory_auto_distill}" "${memory_distiller_type}" "${memory_batch_size}" "${memory_top_k}" "${memory_inject_as_system_hint}" "${memory_distill_base_url}" "${memory_distill_api_key}" "${memory_distill_model}" "${memory_distill_timeout_ms}" <<'PATCH_PY'
 import json
 import os
 import sys
@@ -314,8 +316,10 @@ import sys
     task_state_estimator_request_timeout_ms_raw,
     task_state_estimator_batch_turns_raw,
     task_state_estimator_eviction_lookahead_turns_raw,
+    task_state_estimator_completed_summary_max_raw_turns_raw,
     task_state_estimator_input_mode,
     task_state_estimator_lifecycle_mode,
+    task_state_estimator_evidence_mode,
     task_state_estimator_eviction_promotion_policy,
     task_state_estimator_eviction_promotion_hot_tail_size_raw,
     memory_enabled_raw,
@@ -328,7 +332,7 @@ import sys
     memory_distill_api_key,
     memory_distill_model,
     memory_distill_timeout_ms_raw,
-) = sys.argv[1:52]
+) = sys.argv[1:54]
 
 proxy_port = int(proxy_port_raw)
 proxy_pure_forward = str(proxy_pure_forward_raw).strip().lower() in ("1", "true", "yes", "on")
@@ -357,8 +361,10 @@ keep_estimator_model = task_state_estimator_model == "__KEEP__"
 keep_estimator_request_timeout_ms = task_state_estimator_request_timeout_ms_raw == "__KEEP__"
 keep_estimator_batch_turns = task_state_estimator_batch_turns_raw == "__KEEP__"
 keep_estimator_eviction_lookahead_turns = task_state_estimator_eviction_lookahead_turns_raw == "__KEEP__"
+keep_estimator_completed_summary_max_raw_turns = task_state_estimator_completed_summary_max_raw_turns_raw == "__KEEP__"
 keep_estimator_input_mode = task_state_estimator_input_mode == "__KEEP__"
 keep_estimator_lifecycle_mode = task_state_estimator_lifecycle_mode == "__KEEP__"
+keep_estimator_evidence_mode = task_state_estimator_evidence_mode == "__KEEP__"
 keep_estimator_eviction_promotion_policy = task_state_estimator_eviction_promotion_policy == "__KEEP__"
 keep_estimator_eviction_promotion_hot_tail_size = task_state_estimator_eviction_promotion_hot_tail_size_raw == "__KEEP__"
 keep_memory_enabled = memory_enabled_raw == "__KEEP__"
@@ -383,6 +389,7 @@ if keep_estimator_enabled and (
 task_state_estimator_request_timeout_ms = None if keep_estimator_request_timeout_ms else int(task_state_estimator_request_timeout_ms_raw)
 task_state_estimator_batch_turns = None if keep_estimator_batch_turns else int(task_state_estimator_batch_turns_raw)
 task_state_estimator_eviction_lookahead_turns = None if keep_estimator_eviction_lookahead_turns else int(task_state_estimator_eviction_lookahead_turns_raw)
+task_state_estimator_completed_summary_max_raw_turns = None if keep_estimator_completed_summary_max_raw_turns else int(task_state_estimator_completed_summary_max_raw_turns_raw)
 task_state_estimator_eviction_promotion_hot_tail_size = None if keep_estimator_eviction_promotion_hot_tail_size else int(task_state_estimator_eviction_promotion_hot_tail_size_raw)
 memory_enabled = parse_bool(memory_enabled_raw)
 memory_auto_distill = parse_bool(memory_auto_distill_raw)
@@ -546,6 +553,8 @@ if not keep_estimator_batch_turns:
     task_state_estimator["batchTurns"] = max(1, task_state_estimator_batch_turns)
 if not keep_estimator_eviction_lookahead_turns:
     task_state_estimator["evictionLookaheadTurns"] = max(1, task_state_estimator_eviction_lookahead_turns)
+if not keep_estimator_completed_summary_max_raw_turns:
+    task_state_estimator["completedSummaryMaxRawTurns"] = max(0, task_state_estimator_completed_summary_max_raw_turns)
 if not keep_estimator_input_mode:
     task_state_estimator["inputMode"] = (
         "completed_summary_plus_active_turns"
@@ -557,6 +566,12 @@ if not keep_estimator_lifecycle_mode:
         "decoupled"
         if task_state_estimator_lifecycle_mode == "decoupled"
         else "coupled"
+    )
+if not keep_estimator_evidence_mode:
+    task_state_estimator["evidenceMode"] = (
+        "two_state"
+        if task_state_estimator_evidence_mode == "two_state"
+        else "three_state"
     )
 if not keep_estimator_eviction_promotion_policy:
     task_state_estimator["evictionPromotionPolicy"] = "fifo"
@@ -613,6 +628,7 @@ print(
     f"taskStateEstimatorModel={task_state_estimator.get('model')}",
     f"taskStateEstimatorInputMode={task_state_estimator.get('inputMode')}",
     f"taskStateEstimatorLifecycleMode={task_state_estimator.get('lifecycleMode')}",
+    f"taskStateEstimatorEvidenceMode={task_state_estimator.get('evidenceMode')}",
     f"taskStateEstimatorPromotionPolicy={task_state_estimator.get('evictionPromotionPolicy')}",
     f"taskStateEstimatorHotTailSize={task_state_estimator.get('evictionPromotionHotTailSize')}",
     f"memoryEnabled={memory.get('enabled')}",

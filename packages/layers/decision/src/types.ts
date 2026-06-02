@@ -180,8 +180,10 @@ export type TaskStateEstimatorApiConfig = {
   requestTimeoutMs?: number;
   batchTurns?: number;
   evictionLookaheadTurns?: number;
+  completedSummaryMaxRawTurns?: number;
   inputMode?: DeltaInputMode;
   lifecycleMode?: "coupled" | "decoupled";
+  evidenceMode?: "three_state" | "two_state";
   evictionPromotionPolicy?: "fifo";
   evictionPromotionHotTailSize?: number;
 };

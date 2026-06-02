@@ -273,7 +273,13 @@ export async function enqueueEvictedTasksForProceduralMemory(params: {
   helpers: any;
   logger: any;
 }): Promise<{ enqueued: number; processed: number; produced: number }> {
-  if (!params.cfg.memory.enabled || !params.cfg.memory.autoDistill || params.appliedTaskIds.length === 0) {
+  const evidenceMode = String(params.cfg?.taskStateEstimator?.evidenceMode ?? "three_state");
+  if (
+    evidenceMode === "two_state"
+    || !params.cfg.memory.enabled
+    || !params.cfg.memory.autoDistill
+    || params.appliedTaskIds.length === 0
+  ) {
     return { enqueued: 0, processed: 0, produced: 0 };
   }
   const backend = createLocalProceduralMemoryBackend(params.cfg.stateDir, {
@@ -366,12 +372,13 @@ export async function injectProceduralMemoryHints(params: {
   payload: any;
   helpers: any;
 }): Promise<{ injected: boolean; hitCount: number }> {
-  if (!params.cfg.memory.enabled || params.cfg.memory.topK <= 0) {
+  const evidenceMode = String(params.cfg?.taskStateEstimator?.evidenceMode ?? "three_state");
+  if (evidenceMode === "two_state" || !params.cfg.memory.enabled || params.cfg.memory.topK <= 0) {
     await params.helpers.appendTaskStateTrace(params.cfg.stateDir, {
       stage: "procedural_memory_retrieval",
       sessionId: params.sessionId,
       injected: false,
-      reason: "disabled_or_topk_zero",
+      reason: evidenceMode === "two_state" ? "two_state_evidence_mode" : "disabled_or_topk_zero",
       topK: params.cfg?.memory?.topK ?? 0,
       activeTaskId: "",
       objective: "",

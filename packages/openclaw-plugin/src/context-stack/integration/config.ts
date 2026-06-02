@@ -53,8 +53,10 @@ export type PluginRuntimeConfig = {
     requestTimeoutMs?: number;
     batchTurns?: number;
     evictionLookaheadTurns?: number;
+    completedSummaryMaxRawTurns?: number;
     inputMode?: "sliding_window" | "completed_summary_plus_active_turns";
     lifecycleMode?: "coupled" | "decoupled";
+    evidenceMode?: "three_state" | "two_state";
     evictionPromotionPolicy?: "fifo";
     evictionPromotionHotTailSize?: number;
   };
@@ -162,10 +164,19 @@ export function normalizeConfig(
   const envTaskStateEstimatorTimeoutMs = Number.parseInt(envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_TIMEOUT_MS"), 10);
   const envTaskStateEstimatorBatchTurns = Number.parseInt(envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_BATCH_TURNS"), 10);
   const envTaskStateEstimatorEvictionLookaheadTurns = Number.parseInt(envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_LOOKAHEAD_TURNS"), 10);
+  const envTaskStateEstimatorCompletedSummaryMaxRawTurns = Number.parseInt(
+    envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_COMPLETED_SUMMARY_MAX_RAW_TURNS"),
+    10,
+  );
   const envTaskStateEstimatorInputMode = envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_INPUT_MODE");
   const envTaskStateEstimatorLifecycleMode = envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_LIFECYCLE_MODE");
+  const envTaskStateEstimatorEvidenceMode = envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_EVIDENCE_MODE");
   const envTaskStateEstimatorEvictionPromotionPolicy = envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_PROMOTION_POLICY");
   const envTaskStateEstimatorEvictionPromotionHotTailSize = Number.parseInt(envValue("TOKENPILOT_TASK_STATE_ESTIMATOR_EVICTION_PROMOTION_HOT_TAIL_SIZE"), 10);
+  const normalizedEvidenceMode =
+    taskStateEstimator.evidenceMode === "two_state" || envTaskStateEstimatorEvidenceMode === "two_state"
+      ? "two_state"
+      : "three_state";
   return {
     enabled: cfg.enabled ?? true,
     logLevel: cfg.logLevel ?? "info",
@@ -203,7 +214,7 @@ export function normalizeConfig(
       policy: eviction.policy === "lru" || eviction.policy === "lfu" || eviction.policy === "gdsf" || eviction.policy === "model_scored" || eviction.policy === "noop" ? eviction.policy : "noop",
       maxCandidateBlocks: Math.max(1, eviction.maxCandidateBlocks ?? 128),
       minBlockChars: Math.max(0, eviction.minBlockChars ?? 256),
-      replacementMode: eviction.replacementMode === "drop" ? "drop" : "pointer_stub",
+      replacementMode: normalizedEvidenceMode === "two_state" ? "drop" : eviction.replacementMode === "drop" ? "drop" : "pointer_stub",
     },
     taskStateEstimator: {
       enabled: taskStateEstimator.enabled ?? (envTaskStateEstimatorEnabled === "1" || envTaskStateEstimatorEnabled === "true" || envTaskStateEstimatorEnabled === "yes" || envTaskStateEstimatorEnabled === "on"),
@@ -213,14 +224,25 @@ export function normalizeConfig(
       requestTimeoutMs: Math.max(1000, taskStateEstimator.requestTimeoutMs ?? (Number.isFinite(envTaskStateEstimatorTimeoutMs) ? envTaskStateEstimatorTimeoutMs : 60_000)),
       batchTurns: Math.max(1, taskStateEstimator.batchTurns ?? (Number.isFinite(envTaskStateEstimatorBatchTurns) ? envTaskStateEstimatorBatchTurns : 5)),
       evictionLookaheadTurns: Math.max(1, taskStateEstimator.evictionLookaheadTurns ?? (Number.isFinite(envTaskStateEstimatorEvictionLookaheadTurns) ? envTaskStateEstimatorEvictionLookaheadTurns : 3)),
+      completedSummaryMaxRawTurns: Math.max(
+        0,
+        taskStateEstimator.completedSummaryMaxRawTurns
+          ?? (Number.isFinite(envTaskStateEstimatorCompletedSummaryMaxRawTurns)
+            ? envTaskStateEstimatorCompletedSummaryMaxRawTurns
+            : 0),
+      ),
       inputMode: taskStateEstimator.inputMode === "sliding_window"
         ? "sliding_window"
         : envTaskStateEstimatorInputMode === "sliding_window"
           ? "sliding_window"
           : "completed_summary_plus_active_turns",
       lifecycleMode: taskStateEstimator.lifecycleMode === "decoupled" ? "decoupled" : envTaskStateEstimatorLifecycleMode === "decoupled" ? "decoupled" : "coupled",
+      evidenceMode: normalizedEvidenceMode,
       evictionPromotionPolicy: taskStateEstimator.evictionPromotionPolicy === "fifo" ? "fifo" : envTaskStateEstimatorEvictionPromotionPolicy === "fifo" ? "fifo" : "fifo",
-      evictionPromotionHotTailSize: Math.max(0, taskStateEstimator.evictionPromotionHotTailSize ?? (Number.isFinite(envTaskStateEstimatorEvictionPromotionHotTailSize) ? envTaskStateEstimatorEvictionPromotionHotTailSize : 1)),
+      evictionPromotionHotTailSize:
+        normalizedEvidenceMode === "two_state"
+          ? 0
+          : Math.max(0, taskStateEstimator.evictionPromotionHotTailSize ?? (Number.isFinite(envTaskStateEstimatorEvictionPromotionHotTailSize) ? envTaskStateEstimatorEvictionPromotionHotTailSize : 1)),
     },
     memory: {
       enabled: memory.enabled ?? false,
@@ -339,8 +361,10 @@ export function buildPolicyModuleConfigFromPluginConfig(cfg: ReturnType<typeof n
           requestTimeoutMs: cfg.taskStateEstimator.requestTimeoutMs,
           batchTurns: cfg.taskStateEstimator.batchTurns,
           evictionLookaheadTurns: cfg.taskStateEstimator.evictionLookaheadTurns,
+          completedSummaryMaxRawTurns: cfg.taskStateEstimator.completedSummaryMaxRawTurns,
           inputMode: cfg.taskStateEstimator.inputMode,
           lifecycleMode: cfg.taskStateEstimator.lifecycleMode,
+          evidenceMode: cfg.taskStateEstimator.evidenceMode,
           evictionPromotionPolicy: cfg.taskStateEstimator.evictionPromotionPolicy,
           evictionPromotionHotTailSize: cfg.taskStateEstimator.evictionPromotionHotTailSize,
         }

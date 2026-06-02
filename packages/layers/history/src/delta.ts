@@ -158,6 +158,7 @@ export function deriveCompletedSummaryPlusActiveTurnsWindow(
   registry: SessionTaskRegistry,
   pendingTurnSeqs: number[],
   batchTurns: number,
+  completedSummaryMaxRawTurns = 0,
 ): {
   fromTurnSeqExclusive: number;
   toTurnSeqInclusive: number;
@@ -177,6 +178,12 @@ export function deriveCompletedSummaryPlusActiveTurnsWindow(
   const completedTaskSummaries = Object.values(registry.tasks)
     .filter((task) => task.lifecycle === "completed" || task.lifecycle === "evictable")
     .map((task) => summarizeTaskForEstimator(task));
+
+  const rawTurnCap = Math.max(0, completedSummaryMaxRawTurns);
+  if (rawTurnCap > 0) {
+    const latestAllowedStartTurnSeq = Math.max(1, toTurnSeqInclusive - rawTurnCap + 1);
+    earliestRelevantTurnSeq = Math.max(earliestRelevantTurnSeq, latestAllowedStartTurnSeq);
+  }
 
   return {
     fromTurnSeqExclusive: Math.max(0, earliestRelevantTurnSeq - 1),

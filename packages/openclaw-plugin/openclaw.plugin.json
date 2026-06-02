@@ -214,6 +214,11 @@
             "default": 3,
             "description": "Hint horizon used when deciding whether a completed task can move to evictable."
           },
+          "completedSummaryMaxRawTurns": {
+            "type": "number",
+            "default": 0,
+            "description": "Optional cap on how many recent raw turns remain in the estimator window before older completed/evictable tasks are represented through completedTaskSummaries."
+          },
           "lifecycleMode": {
             "type": "string",
             "enum": [
@@ -222,6 +227,15 @@
             ],
             "default": "coupled",
             "description": "Whether the estimator directly predicts evictable or only predicts active/completed."
+          },
+          "evidenceMode": {
+            "type": "string",
+            "enum": [
+              "three_state",
+              "two_state"
+            ],
+            "default": "three_state",
+            "description": "Whether completed task evidence is retained for later tasks or hidden from the estimator/memory stack."
           },
           "evictionPromotionPolicy": {
             "type": "string",

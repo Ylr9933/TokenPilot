@@ -1,4 +1,4 @@
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
   RUNTIME_EVENT_TYPES,
@@ -388,6 +388,18 @@ type TaskStateRunResult = {
   decision: PolicyTaskStateDecision;
 };
 
+type TaskStateEstimatorRunMarker = {
+  sessionId: string;
+  registryVersion: number;
+  fromTurnSeqExclusive: number;
+  toTurnSeqInclusive: number;
+  batchTurns: number;
+  inputMode: string;
+  lifecycleMode: LifecycleMode;
+  evidenceMode: "three_state" | "two_state";
+  at: string;
+};
+
 async function appendTaskStateTrace(stateDir: string, payload: Record<string, unknown>): Promise<void> {
   const path = join(stateDir, "task-state", "trace.jsonl");
   try {
@@ -398,6 +410,61 @@ async function appendTaskStateTrace(stateDir: string, payload: Record<string, un
         at: new Date().toISOString(),
         ...payload,
       })}\n`,
+      "utf8",
+    );
+  } catch {
+    // best-effort trace only
+  }
+}
+
+async function appendTaskStateEstimatorOutput(
+  stateDir: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  const path = join(stateDir, "task-state", "estimator-output.jsonl");
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await appendFile(
+      path,
+      `${JSON.stringify({
+        at: new Date().toISOString(),
+        ...payload,
+      })}\n`,
+      "utf8",
+    );
+  } catch {
+    // best-effort trace only
+  }
+}
+
+function taskStateEstimatorMarkerPath(stateDir: string): string {
+  return join(stateDir, "task-state", "estimator-last-run.json");
+}
+
+async function readTaskStateEstimatorMarker(stateDir: string): Promise<TaskStateEstimatorRunMarker | null> {
+  try {
+    const raw = await readFile(taskStateEstimatorMarkerPath(stateDir), "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as TaskStateEstimatorRunMarker;
+  } catch {
+    return null;
+  }
+}
+
+async function writeTaskStateEstimatorMarker(
+  stateDir: string,
+  marker: Omit<TaskStateEstimatorRunMarker, "at"> & { at?: string },
+): Promise<void> {
+  const path = taskStateEstimatorMarkerPath(stateDir);
+  try {
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(
+      path,
+      `${JSON.stringify({
+        ...marker,
+        at: marker.at ?? new Date().toISOString(),
+      }, null, 2)}\n`,
       "utf8",
     );
   } catch {
@@ -436,6 +503,10 @@ function buildPatchFromTaskUpdates(
   updates: SemanticTaskUpdate[],
   coveredTurnAbsIds: string[],
   toTurnSeqInclusive: number,
+  options?: {
+    allowActiveToEvictable?: boolean;
+    collapseCompletedIntoEvictable?: boolean;
+  },
 ): {
   patch: SessionTaskRegistryPatch;
   transitions: TaskStateTransition[];
@@ -473,6 +544,8 @@ function buildPatchFromTaskUpdates(
     const toLifecycle = update.lifecycle;
     const fromHasCompletionEvidence = hasCompletionEvidence(previous);
     const toHasCompletionEvidence = mergedCompletionEvidence.length > 0;
+    const allowActiveToEvictable = options?.allowActiveToEvictable === true;
+    const collapseCompletedIntoEvictable = options?.collapseCompletedIntoEvictable === true;
 
     if (toLifecycle === "completed" && !toHasCompletionEvidence) {
       rejectedUpdates.push({
@@ -484,23 +557,25 @@ function buildPatchFromTaskUpdates(
       continue;
     }
     if (toLifecycle === "evictable") {
-      if (fromLifecycle === "active" || !previous) {
-        rejectedUpdates.push({
-          taskId,
-          ...(fromLifecycle ? { from: fromLifecycle } : {}),
-          to: toLifecycle,
-          reason: "active_to_evictable_forbidden",
-        });
-        continue;
-      }
-      if (fromLifecycle !== "completed" && fromLifecycle !== "evictable") {
-        rejectedUpdates.push({
-          taskId,
-          ...(fromLifecycle ? { from: fromLifecycle } : {}),
-          to: toLifecycle,
-          reason: "evictable_requires_completed_state",
-        });
-        continue;
+      if (!allowActiveToEvictable) {
+        if (fromLifecycle === "active" || !previous) {
+          rejectedUpdates.push({
+            taskId,
+            ...(fromLifecycle ? { from: fromLifecycle } : {}),
+            to: toLifecycle,
+            reason: "active_to_evictable_forbidden",
+          });
+          continue;
+        }
+        if (fromLifecycle !== "completed" && fromLifecycle !== "evictable") {
+          rejectedUpdates.push({
+            taskId,
+            ...(fromLifecycle ? { from: fromLifecycle } : {}),
+            to: toLifecycle,
+            reason: "evictable_requires_completed_state",
+          });
+          continue;
+        }
       }
       if (!fromHasCompletionEvidence && !toHasCompletionEvidence) {
         rejectedUpdates.push({
@@ -600,6 +675,17 @@ function normalizeTaskUpdatesForLifecycleMode(
           lifecycle: "completed",
         }
       : update);
+}
+
+function collapseCompletedIntoEvictableForTwoState(updates: SemanticTaskUpdate[]): SemanticTaskUpdate[] {
+  return updates.map((update) =>
+    update.lifecycle === "completed"
+      ? {
+          ...update,
+          lifecycle: "evictable",
+        }
+      : update,
+  );
 }
 
 function sortTaskIdsByLastTurnAscending(registry: SessionTaskRegistry, taskIds: string[]): string[] {
@@ -885,11 +971,13 @@ function normalizeConfig(cfg: PolicyModuleConfig): NormalizedPolicyConfig {
       requestTimeoutMs: Math.max(1000, cfg.taskStateEstimator?.requestTimeoutMs ?? 60_000),
       batchTurns: Math.max(1, cfg.taskStateEstimator?.batchTurns ?? 5),
       evictionLookaheadTurns: Math.max(1, cfg.taskStateEstimator?.evictionLookaheadTurns ?? 3),
+      completedSummaryMaxRawTurns: Math.max(0, cfg.taskStateEstimator?.completedSummaryMaxRawTurns ?? 0),
       inputMode:
         cfg.taskStateEstimator?.inputMode === "completed_summary_plus_active_turns"
           ? "completed_summary_plus_active_turns"
           : "sliding_window",
       lifecycleMode: cfg.taskStateEstimator?.lifecycleMode === "decoupled" ? "decoupled" : "coupled",
+      evidenceMode: cfg.taskStateEstimator?.evidenceMode === "two_state" ? "two_state" : "three_state",
       evictionPromotionPolicy: cfg.taskStateEstimator?.evictionPromotionPolicy === "fifo" ? "fifo" : "fifo",
       evictionPromotionHotTailSize: Math.max(0, cfg.taskStateEstimator?.evictionPromotionHotTailSize ?? 1),
     },
@@ -1505,18 +1593,19 @@ async function maybeRunTaskStateEstimator(
 ): Promise<TaskStateRunResult | null> {
   if (!config.stateDir) return null;
   await appendTaskStateTrace(config.stateDir, {
-    stage: "estimator_gate_check",
-    sessionId: ctx.sessionId,
-    estimatorEnabled: config.taskStateEstimator.enabled,
-    hasStateDir: Boolean(config.stateDir),
-    hasEstimatorInstance: Boolean(estimator),
+        stage: "estimator_gate_check",
+        sessionId: ctx.sessionId,
+        estimatorEnabled: config.taskStateEstimator.enabled,
+        hasStateDir: Boolean(config.stateDir),
+        hasEstimatorInstance: Boolean(estimator),
     estimatorBaseUrlPresent: Boolean(config.taskStateEstimator.baseUrl),
     estimatorApiKeyPresent: Boolean(config.taskStateEstimator.apiKey),
-    estimatorModel: config.taskStateEstimator.model ?? null,
-    batchTurns: config.taskStateEstimator.batchTurns,
-    lifecycleMode: config.taskStateEstimator.lifecycleMode,
-    inputMode: config.taskStateEstimator.inputMode,
-  });
+        estimatorModel: config.taskStateEstimator.model ?? null,
+        batchTurns: config.taskStateEstimator.batchTurns,
+        completedSummaryMaxRawTurns: config.taskStateEstimator.completedSummaryMaxRawTurns,
+        lifecycleMode: config.taskStateEstimator.lifecycleMode,
+        inputMode: config.taskStateEstimator.inputMode,
+      });
   if (!config.taskStateEstimator.enabled || !estimator) {
     await appendTaskStateTrace(config.stateDir, {
       stage: "estimator_gate_blocked",
@@ -1541,9 +1630,10 @@ async function maybeRunTaskStateEstimator(
     lastProcessedTurnSeq: registry.lastProcessedTurnSeq,
     availableTurnSeqs: turnSeqs,
     pendingTurnSeqs,
-    batchTurns: config.taskStateEstimator.batchTurns,
-    inputMode: config.taskStateEstimator.inputMode,
-  });
+      batchTurns: config.taskStateEstimator.batchTurns,
+      completedSummaryMaxRawTurns: config.taskStateEstimator.completedSummaryMaxRawTurns,
+      inputMode: config.taskStateEstimator.inputMode,
+    });
   if (pendingTurnSeqs.length < config.taskStateEstimator.batchTurns) {
     await appendTaskStateTrace(config.stateDir, {
       stage: "estimator_skipped",
@@ -1570,12 +1660,20 @@ async function maybeRunTaskStateEstimator(
   }
 
   const slidingWindowToTurnSeqInclusive = pendingTurnSeqs[config.taskStateEstimator.batchTurns - 1]!;
+  const evidenceMode = config.taskStateEstimator.evidenceMode ?? "three_state";
   const estimatorWindow =
-    config.taskStateEstimator.inputMode === "completed_summary_plus_active_turns"
+    evidenceMode === "two_state"
+      ? {
+          fromTurnSeqExclusive: registry.lastProcessedTurnSeq,
+          toTurnSeqInclusive: slidingWindowToTurnSeqInclusive,
+          completedTaskSummaries: [],
+        }
+      : config.taskStateEstimator.inputMode === "completed_summary_plus_active_turns"
       ? deriveCompletedSummaryPlusActiveTurnsWindow(
           registry,
           pendingTurnSeqs,
           config.taskStateEstimator.batchTurns,
+          config.taskStateEstimator.completedSummaryMaxRawTurns,
         )
       : {
           fromTurnSeqExclusive: registry.lastProcessedTurnSeq,
@@ -1592,8 +1690,49 @@ async function maybeRunTaskStateEstimator(
     fromTurnSeqExclusive: estimatorWindow.fromTurnSeqExclusive,
     toTurnSeqInclusive: estimatorWindow.toTurnSeqInclusive,
     inputMode: config.taskStateEstimator.inputMode,
-    completedTaskSummaries: estimatorWindow.completedTaskSummaries,
+    completedTaskSummaries: evidenceMode === "two_state" ? [] : estimatorWindow.completedTaskSummaries,
   });
+
+  const lastMarker = await readTaskStateEstimatorMarker(config.stateDir);
+  if (
+    lastMarker
+    && lastMarker.sessionId === ctx.sessionId
+    && lastMarker.registryVersion === registry.version
+    && lastMarker.fromTurnSeqExclusive === estimatorWindow.fromTurnSeqExclusive
+    && lastMarker.toTurnSeqInclusive === estimatorWindow.toTurnSeqInclusive
+    && lastMarker.batchTurns === config.taskStateEstimator.batchTurns
+    && lastMarker.inputMode === config.taskStateEstimator.inputMode
+    && lastMarker.lifecycleMode === config.taskStateEstimator.lifecycleMode
+    && lastMarker.evidenceMode === evidenceMode
+  ) {
+    await appendTaskStateTrace(config.stateDir, {
+      stage: "estimator_skipped_duplicate",
+      sessionId: ctx.sessionId,
+      registryVersion: registry.version,
+      fromTurnSeqExclusive: estimatorWindow.fromTurnSeqExclusive,
+      toTurnSeqInclusive: estimatorWindow.toTurnSeqInclusive,
+      batchTurns: config.taskStateEstimator.batchTurns,
+      inputMode: config.taskStateEstimator.inputMode,
+      lifecycleMode: config.taskStateEstimator.lifecycleMode,
+      evidenceMode,
+    });
+    return {
+      registry,
+      decision: {
+        enabled: true,
+        attempted: false,
+        applied: false,
+        baseVersion: registry.version,
+        nextVersion: registry.version,
+        coveredTurnAbsIds: [],
+        touchedTaskIds: [],
+        transitionCount: 0,
+        transitions: [],
+        rejectedUpdates: [],
+        note: "duplicate_estimator_window",
+      },
+    };
+  }
 
   if (delta.coveredTurnAbsIds.length === 0) {
     await appendTaskStateTrace(config.stateDir, {
@@ -1630,16 +1769,55 @@ async function maybeRunTaskStateEstimator(
       output.taskUpdates,
       config.taskStateEstimator.lifecycleMode,
     );
+    const lifecycleAwareTaskUpdates =
+      evidenceMode === "two_state"
+        ? collapseCompletedIntoEvictableForTwoState(normalizedTaskUpdates)
+        : normalizedTaskUpdates;
+    await appendTaskStateEstimatorOutput(config.stateDir, {
+      stage: "estimator_output",
+      sessionId: ctx.sessionId,
+      baseVersion: output.baseVersion,
+      registryVersion: registry.version,
+      lifecycleMode: config.taskStateEstimator.lifecycleMode,
+      evidenceMode,
+      batchTurns: config.taskStateEstimator.batchTurns,
+      inputMode: config.taskStateEstimator.inputMode,
+      delta: {
+        fromTurnSeqExclusive: estimatorWindow.fromTurnSeqExclusive,
+        toTurnSeqInclusive: estimatorWindow.toTurnSeqInclusive,
+        coveredTurnAbsIds: delta.coveredTurnAbsIds,
+        messageCount: delta.messages.length,
+        toolCallCount: delta.toolCalls.length,
+        toolResultCount: delta.toolResults.length,
+        filesRead: delta.filesRead,
+        filesWritten: delta.filesWritten,
+        currentActiveTaskHint: delta.currentActiveTaskHint,
+        completedTaskSummaries: delta.completedTaskSummaries ?? [],
+      },
+      rawOutput: output,
+      normalizedTaskUpdates,
+      appliedTaskUpdates: lifecycleAwareTaskUpdates,
+    });
     await appendTaskStateTrace(config.stateDir, {
       stage: "estimator_output",
       sessionId: ctx.sessionId,
       baseVersion: output.baseVersion,
       lifecycleMode: config.taskStateEstimator.lifecycleMode,
-      taskUpdates: normalizedTaskUpdates.map((update) => ({
+      taskUpdates: lifecycleAwareTaskUpdates.map((update) => ({
         taskId: update.taskId,
         lifecycle: update.lifecycle,
         coveredTurnAbsIds: update.coveredTurnAbsIds ?? [],
       })),
+    });
+    await writeTaskStateEstimatorMarker(config.stateDir, {
+      sessionId: ctx.sessionId,
+      registryVersion: registry.version,
+      fromTurnSeqExclusive: estimatorWindow.fromTurnSeqExclusive,
+      toTurnSeqInclusive: estimatorWindow.toTurnSeqInclusive,
+      batchTurns: config.taskStateEstimator.batchTurns,
+      inputMode: config.taskStateEstimator.inputMode,
+      lifecycleMode: config.taskStateEstimator.lifecycleMode,
+      evidenceMode,
     });
     if (output.baseVersion !== registry.version) {
       await appendTaskStateTrace(config.stateDir, {
@@ -1669,9 +1847,13 @@ async function maybeRunTaskStateEstimator(
 
     const built = buildPatchFromTaskUpdates(
       registry,
-      normalizedTaskUpdates,
+      lifecycleAwareTaskUpdates,
       delta.coveredTurnAbsIds,
       estimatorWindow.toTurnSeqInclusive,
+      {
+        allowActiveToEvictable: evidenceMode === "two_state",
+        collapseCompletedIntoEvictable: evidenceMode === "two_state",
+      },
     );
     if (built.rejectedUpdates.length > 0) {
       await appendTaskStateTrace(config.stateDir, {
@@ -1815,6 +1997,7 @@ export function createPolicyModule(cfg: PolicyModuleConfig = {}): RuntimeModule 
       const state = stateBySession.get(ctx.sessionId) ?? createInitialPolicySessionState();
       const stabilizerEligible = readStabilizerEligible(ctx);
       const analysis = analyzePolicyBeforeBuild(ctx, state, apiFamily, config);
+      const evidenceMode = config.taskStateEstimator.evidenceMode ?? "three_state";
       if (config.stateDir) {
         await appendTaskStateTrace(config.stateDir, {
           stage: "policy_before_build",
@@ -1827,6 +2010,7 @@ export function createPolicyModule(cfg: PolicyModuleConfig = {}): RuntimeModule 
           estimatorModel: config.taskStateEstimator.model ?? null,
           batchTurns: config.taskStateEstimator.batchTurns,
           lifecycleMode: config.taskStateEstimator.lifecycleMode,
+          evidenceMode,
           inputMode: config.taskStateEstimator.inputMode,
           evictionEnabled: config.evictionEnabled,
         });

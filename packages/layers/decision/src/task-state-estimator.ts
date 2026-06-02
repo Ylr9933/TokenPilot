@@ -20,10 +20,16 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
 }
 
+function shouldPreferChatCompletions(baseUrl: string): boolean {
+  const normalized = normalizeBaseUrl(baseUrl).toLowerCase();
+  return normalized.includes("dmxapi.cn");
+}
+
 function buildSystemPrompt(
-  config: Required<Pick<TaskStateEstimatorApiConfig, "evictionLookaheadTurns" | "lifecycleMode">>,
+  config: Required<Pick<TaskStateEstimatorApiConfig, "evictionLookaheadTurns" | "lifecycleMode" | "evidenceMode">>,
 ): string {
   const coupled = config.lifecycleMode === "coupled";
+  const threeState = config.evidenceMode !== "two_state";
   return [
     "You are a task-state estimator for a long-running agent session.",
     "Your job is to update global task state incrementally.",
@@ -67,8 +73,14 @@ function buildSystemPrompt(
     ...(coupled ? ["If lifecycle is evictable, include evictableReason as one short sentence."] : []),
     "Do not output registry patch fields such as upsertTasks, activeTaskIds, completedTaskIds, evictableTaskIds, upsertTurnToTaskIds, transitions, span, or lastProcessedTurnSeq.",
     "Do not use alternate field names such as status, description, action, fromTurnSeq, toTurnSeq, task_created, or task_progressed.",
-    "The delta may include completedTaskSummaries when older completed tasks have been compressed out of the active estimator context.",
-    "Treat completedTaskSummaries as stable background memory and prefer keeping the currently unresolved task as one continuous task unless the newest user request clearly starts a new objective.",
+    ...(threeState
+      ? [
+          "The delta may include completedTaskSummaries when older completed tasks have been compressed out of the active estimator context.",
+          "Treat completedTaskSummaries as stable background memory and prefer keeping the currently unresolved task as one continuous task unless the newest user request clearly starts a new objective.",
+        ]
+      : [
+          "Do not rely on completedTaskSummaries or retained completion evidence from prior tasks; classify each new task only from the current delta and registry state.",
+        ]),
   ].join(" ");
 }
 
@@ -143,11 +155,77 @@ function buildDerivedHints(input: TaskStateEstimatorInput): Record<string, unkno
   };
 }
 
-function buildUserPayload(input: TaskStateEstimatorInput): string {
+function filterRegistryForEvidenceMode(
+  registry: TaskStateEstimatorInput["registry"],
+  evidenceMode: "three_state" | "two_state",
+): TaskStateEstimatorInput["registry"] {
+  if (evidenceMode !== "two_state") return registry;
+  const keptTaskIds = new Set(
+    Object.values(registry.tasks)
+      .filter((task) => task.lifecycle !== "completed" && task.lifecycle !== "evictable")
+      .map((task) => task.taskId),
+  );
+  const filterTaskArray = (values: string[] | undefined): string[] =>
+    Array.isArray(values)
+      ? values.filter((taskId) => typeof taskId === "string" && keptTaskIds.has(taskId))
+      : [];
+  const filterTaskMap = (map: Record<string, string[]> | undefined): Record<string, string[]> => {
+    if (!map || typeof map !== "object") return {};
+    const next: Record<string, string[]> = {};
+    for (const [key, values] of Object.entries(map)) {
+      if (!keptTaskIds.has(key)) continue;
+      next[key] = Array.isArray(values)
+        ? values.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+        : [];
+    }
+    return next;
+  };
+  const filterBlockMap = (map: Record<string, string[]> | undefined): Record<string, string[]> => {
+    if (!map || typeof map !== "object") return {};
+    const next: Record<string, string[]> = {};
+    for (const [key, values] of Object.entries(map)) {
+      const filtered = Array.isArray(values)
+        ? values.filter((taskId): taskId is string => typeof taskId === "string" && keptTaskIds.has(taskId))
+        : [];
+      if (filtered.length > 0) next[key] = filtered;
+    }
+    return next;
+  };
+  return {
+    ...registry,
+    tasks: Object.fromEntries(
+      Object.entries(registry.tasks).filter(([, task]) => task.lifecycle !== "completed" && task.lifecycle !== "evictable"),
+    ),
+    activeTaskIds: filterTaskArray(registry.activeTaskIds),
+    completedTaskIds: [],
+    evictableTaskIds: [],
+    taskToBlockIds: filterTaskMap(registry.taskToBlockIds),
+    blockToTaskIds: filterBlockMap(registry.blockToTaskIds),
+    turnToTaskIds: filterBlockMap(registry.turnToTaskIds),
+  };
+}
+
+function buildUserPayload(
+  input: TaskStateEstimatorInput,
+  evidenceMode: "three_state" | "two_state",
+): string {
+  const filteredRegistry = filterRegistryForEvidenceMode(input.registry, evidenceMode);
+  const filteredDelta =
+    evidenceMode === "two_state"
+      ? {
+          ...input.delta,
+          completedTaskSummaries: [],
+        }
+      : input.delta;
+  const filteredInput: TaskStateEstimatorInput = {
+    registry: filteredRegistry,
+    delta: filteredDelta,
+  };
+  const hints = buildDerivedHints(filteredInput);
   return JSON.stringify({
-    registry: input.registry,
-    delta: input.delta,
-    hints: buildDerivedHints(input),
+    registry: filteredRegistry,
+    delta: filteredDelta,
+    hints,
   });
 }
 
@@ -264,6 +342,8 @@ export function createApiTaskStateEstimator(
   const requestTimeoutMs = Math.max(1000, cfg.requestTimeoutMs ?? 60_000);
   const evictionLookaheadTurns = Math.max(1, cfg.evictionLookaheadTurns ?? 3);
   const lifecycleMode = cfg.lifecycleMode === "decoupled" ? "decoupled" : "coupled";
+  const evidenceMode = cfg.evidenceMode === "two_state" ? "two_state" : "three_state";
+  const preferChatCompletions = shouldPreferChatCompletions(baseUrl);
 
   async function requestViaResponses(
     controller: AbortController,
@@ -281,11 +361,11 @@ export function createApiTaskStateEstimator(
         input: [
           {
             role: "system",
-            content: [{ type: "input_text", text: buildSystemPrompt({ evictionLookaheadTurns, lifecycleMode }) }],
+            content: [{ type: "input_text", text: buildSystemPrompt({ evictionLookaheadTurns, lifecycleMode, evidenceMode }) }],
           },
           {
             role: "user",
-            content: [{ type: "input_text", text: buildUserPayload(input) }],
+            content: [{ type: "input_text", text: buildUserPayload(input, evidenceMode) }],
           },
         ],
         text: {
@@ -320,11 +400,11 @@ export function createApiTaskStateEstimator(
         messages: [
           {
             role: "system",
-            content: buildSystemPrompt({ evictionLookaheadTurns, lifecycleMode }),
+            content: buildSystemPrompt({ evictionLookaheadTurns, lifecycleMode, evidenceMode }),
           },
           {
             role: "user",
-            content: buildUserPayload(input),
+            content: buildUserPayload(input, evidenceMode),
           },
         ],
         response_format: {
@@ -347,16 +427,14 @@ export function createApiTaskStateEstimator(
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
+        if (preferChatCompletions) {
+          return await requestViaChatCompletions(controller, input);
+        }
         try {
           return await requestViaResponses(controller, input);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          if (
-            !message.includes("responses_api_failed:")
-            || (!message.includes("convert_request_failed") && !message.includes("not implemented"))
-          ) {
-            throw error;
-          }
+          if (!message.includes("responses_api_failed:")) throw error;
         }
         return await requestViaChatCompletions(controller, input);
       } finally {

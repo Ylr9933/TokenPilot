@@ -1,61 +1,21 @@
-# Documentation
+# TokenPilot 文档
 
-This directory tracks the current TokenPilot architecture, migration notes, and
-runtime operating guidance.
+这套文档只保留当前代码仍然有效、并且能帮助理解与调试运行链路的内容。
 
-Benchmark execution still lives in a separate harness today. The long-term
-target is to consolidate that material under the top-level `experiments/`
-directory in this repo.
+建议阅读顺序：
 
-## Architecture
+1. [仓库总览](./仓库总览.md)
+2. [整体运行链路](./整体运行链路.md)
+3. [OpenClaw 插件层](./OpenClaw插件层.md)
+4. [Runtime Core 层](./RuntimeCore层.md)
+5. [History 层](./History层.md)
+6. [Decision 层](./Decision层.md)
+7. [config.ts 代码导读](./config.ts代码导读.md)
+8. [proxy-runtime.ts 代码导读](./proxy-runtime.ts代码导读.md)
+9. [policy.ts 代码导读](./policy.ts代码导读.md)
+10. [运行与调试](./运行与调试.md)
 
-- [Overview](architecture/overview.md) - 3-layer architecture, key distinctions
-- [Canonical Design](architecture/canonical-design.md) - Transcript/canonical/eviction design
-- [Plugin Semantic Grouping](architecture/plugin-semantic-grouping.md) - Current semantic buckets for plugin modules
-- [Plugin Semantic Regroup Plan](architecture/plugin-semantic-regroup-plan.md) - Future semantic facades and regroup strategy
-- [Plugin Script Inventory](architecture/plugin-script-inventory.md) - Status of plugin-side helper scripts
-- [Runtime ID Inventory](architecture/ecoclaw-runtime-id-inventory.md) - Current legacy runtime naming surface and migration risk classes
-- [Experiments Consolidation Plan](architecture/experiments-consolidation-plan.md) - How benchmark assets should merge into `experiments/`
-- [Runtime-Neutral Contracts Plan](architecture/runtime-neutral-contracts-plan.md) - Contract split between `kernel`, `layers`, `runtime-core`, and host adapters
-- [TokenPilot OpenClaw Adapter Extraction Inventory](architecture/openclaw-plugin-extraction-inventory.md) - Current boundary between adapter-only code, extracted shared logic, and mixed request-preprocessing surfaces
-- [Runtime Rename Migration Plan](architecture/runtime-rename-migration-plan.md) - Staged compatibility plan for renaming plugin ids, provider prefixes, env vars, package names, and persisted markers
-- [Workspace Package Rename Plan](architecture/workspace-package-rename-plan.md) - Completed build migration from legacy workspace package names to `@tokenpilot/*`
-- [PinchBench Experiments README](../experiments/pinchbench/README.md) - Narrowed first-pass experiments merge target
+额外说明：
 
-## Plans
-
-- [Eviction Implementation Plan](plans/eviction-plan.md) - Task-level eviction implementation
-- [Reduction Plan](plans/reduction-plan.md) - Reduction layer refactor plan
-
-## Experiments
-
-- [Estimator Mode Comparison](experiments/estimator-mode.md) - Sliding window vs completed summary modes
-- [PinchBench Dataset Replacement Checklist](experiments/pinchbench-dataset-replacement-checklist.md) - Work required to replace the local 23-task PinchBench subset with the upstream dataset
-- [PinchBench Dataset Migration Status](experiments/pinchbench-dataset-migration-status.md) - Current completion status of the upstream PinchBench dataset migration
-- [Observations Source](../exp/) - Raw observation files from experiments
-- [Experiments Placeholder](../experiments/README.md) - Planned home for future benchmark/evaluation assets
-
-## Bug Reports
-
-- [Bug Reports Index](bug-reports/index.md) - All documented bugs with severity, root cause, resolution
-
-## Run Guide
-
-- [Run Guide](run-guide.md) - Plugin development workflow, runtime sync, verification, pre-run checklist, common issues
-
-## Scripts
-
-- [Smoke Test Gateway](scripts/smoke_isolated_gateway.sh) - Isolated gateway smoke test
-
-## Deleted/Archived
-
-Old documentation from the legacy pre-execution notes archive:
-- `bug.txt` - consolidated into `bug-reports/index.md`
-- `notice.txt` - integrated into `run-guide.md` (operational notes) and `bug-reports/index.md`
-- `plan.txt` - older phase plan, removed after later architecture refactors
-- `progresss.txt` - older status log, removed after later continual/eviction refactors
-- `reduction_plan.txt` - moved to `plans/reduction-plan.md`
-- `SupervisorAgent.txt` - archived, reference only (not current architecture)
-- `task_plan.txt` - moved to `plans/eviction-plan.md`
-- `PICHAY.txt` - old design reference, removed from the active docs index
-- `notice_background.txt` - archived (background context, not current design)
+- `docs/scripts/smoke_isolated_gateway.sh` 仍保留，它是可执行的 smoke 脚本，不算历史说明文档。
+- `experiments/` 下的 README 和脚本继续作为实验入口，不再在 `docs/` 里重复维护一份计划文档。

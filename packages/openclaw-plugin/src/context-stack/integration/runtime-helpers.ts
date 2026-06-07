@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { basename } from "node:path";
+import { basename, isAbsolute, resolve } from "node:path";
 
 type PluginLoggerLike = {
   info?: (...args: any[]) => void;
@@ -89,6 +89,78 @@ export function applyBeforeToolCallDefaults(event: any): Record<string, unknown>
     if (!args && !argumentsObject) return normalized;
   }
   return params;
+}
+
+function trimText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function resolvePathField(target: Record<string, unknown>, fieldName: string, workspaceDir: string): boolean {
+  const current = trimText(target[fieldName]);
+  if (!current || isAbsolute(current)) return false;
+  target[fieldName] = resolve(workspaceDir, current);
+  return true;
+}
+
+export function applyWorkspacePathHintToToolParams(
+  event: any,
+  workspaceDir: string | undefined,
+): Record<string, unknown> | undefined {
+  const normalizedWorkspaceDir = trimText(workspaceDir);
+  const toolName = String(
+    event?.toolName
+    ?? event?.tool_name
+    ?? event?.name
+    ?? event?.params?.toolName
+    ?? event?.params?.tool_name
+    ?? event?.params?.name
+    ?? "",
+  ).trim().toLowerCase();
+  if (!normalizedWorkspaceDir) return event?.params;
+  if (!new Set(["read", "write", "edit"]).has(toolName)) return event?.params;
+
+  const params = event?.params && typeof event.params === "object"
+    ? { ...(event.params as Record<string, unknown>) }
+    : {};
+  const args =
+    params.args && typeof params.args === "object"
+      ? { ...(params.args as Record<string, unknown>) }
+      : null;
+  const argumentsObject =
+    params.arguments && typeof params.arguments === "object"
+      ? { ...(params.arguments as Record<string, unknown>) }
+      : null;
+
+  const target = args ?? argumentsObject ?? params;
+  resolvePathField(target, "path", normalizedWorkspaceDir);
+
+  if (args) params.args = target;
+  if (argumentsObject) params.arguments = target;
+  return params;
+}
+
+export function extractWorkspaceDirFromMessages(
+  messages: any[],
+  contentToTextFn: (value: unknown) => string,
+): string | undefined {
+  const patterns = [
+    /Your working directory is:\s*([^\n\r]+)/i,
+    /(?:^|\n)-\s*WORKDIR:\s*([^\n\r]+)/i,
+  ];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    const text = contentToTextFn(message?.content ?? message);
+    if (!text.trim()) continue;
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      const candidate = trimText(match?.[1]);
+      if (!candidate || candidate === "<WORKDIR>") continue;
+      if (candidate.startsWith("/") || /^[A-Za-z]:[\\/]/.test(candidate)) {
+        return candidate;
+      }
+    }
+  }
+  return undefined;
 }
 
 export function isToolResultLikeMessage(message: Record<string, unknown>): boolean {

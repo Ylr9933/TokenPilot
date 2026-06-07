@@ -207,6 +207,16 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
     return topology.getLatestUpstreamSessionId() ?? undefined;
   };
 
+  const rememberWorkspaceHint = (
+    sessionKey: string | undefined,
+    upstreamSessionId: string | undefined,
+    messages: any[],
+  ) => {
+    const workspaceDir = deps.extractWorkspaceDirFromMessages?.(messages, deps.contentToText);
+    if (!workspaceDir) return;
+    deps.rememberWorkspaceHint?.(sessionKey, upstreamSessionId, workspaceDir);
+  };
+
   let proxyRuntime: Awaited<ReturnType<typeof startEmbeddedResponsesProxy>> | null = null;
   let proxyInitDone = false;
   let proxyInitPromise: Promise<void> | null = null;
@@ -284,6 +294,8 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
     const userMessage = deps.extractLastUserMessage(event);
     const upstreamSessionId = deps.extractOpenClawSessionId(event);
     const sessionKey = deps.extractSessionKey(event);
+    const messages = Array.isArray(event?.messages) ? event.messages : [];
+    rememberWorkspaceHint(sessionKey, upstreamSessionId || undefined, messages);
     if (userMessage.trim() && sessionKey.trim()) {
       rememberTurnBinding(userMessage, sessionKey, upstreamSessionId || undefined);
       rememberScopedTurnBinding(event, userMessage, upstreamSessionId || undefined);
@@ -291,7 +303,6 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
       if (upstreamSessionId) topology.bindUpstreamSession(sessionKey, upstreamSessionId);
     }
     if (cfg.stateDir && upstreamSessionId) {
-      const messages = Array.isArray(event?.messages) ? event.messages : [];
       const transcriptSync = await deps.syncRawSemanticTurnsFromTranscript(cfg.stateDir, upstreamSessionId, {
         contentToText: deps.contentToText,
         contextSafeRecovery: deps.contextSafeRecovery,

@@ -45,6 +45,7 @@ import {
   PluginRuntimeConfig,
   PluginLogger,
   applyBeforeToolCallDefaults,
+  applyWorkspacePathHintToToolParams,
   applyPolicyBeforeCall,
   asRecord,
   buildPolicyModuleConfigFromPluginConfig,
@@ -59,6 +60,7 @@ import {
   extractOpenClawSessionId,
   extractProviderResponseText,
   extractSessionKey,
+  extractWorkspaceDirFromMessages,
   extractToolMessageText,
   findLastUserItem,
   hookOn,
@@ -285,6 +287,31 @@ module.exports = {
   register(api: any) {
     const logger = makeLogger(api?.logger);
     const cfg = normalizeConfig(api?.pluginConfig);
+    const workspaceDirBySessionKey = new Map<string, string>();
+    const workspaceDirBySessionId = new Map<string, string>();
+
+    const rememberWorkspaceHint = (
+      sessionKey: string | undefined,
+      sessionId: string | undefined,
+      workspaceDir: string | undefined,
+    ) => {
+      const normalizedWorkspaceDir = typeof workspaceDir === "string" ? workspaceDir.trim() : "";
+      if (!normalizedWorkspaceDir) return;
+      const normalizedSessionKey = typeof sessionKey === "string" ? sessionKey.trim() : "";
+      const normalizedSessionId = typeof sessionId === "string" ? sessionId.trim() : "";
+      if (normalizedSessionKey) workspaceDirBySessionKey.set(normalizedSessionKey, normalizedWorkspaceDir);
+      if (normalizedSessionId) workspaceDirBySessionId.set(normalizedSessionId, normalizedWorkspaceDir);
+    };
+
+    const resolveWorkspaceHintForEvent = (event: any): string | undefined => {
+      const sessionKey = extractSessionKey(event);
+      const sessionId = extractOpenClawSessionId(event);
+      return (
+        (sessionKey ? workspaceDirBySessionKey.get(sessionKey) : undefined)
+        ?? (sessionId ? workspaceDirBySessionId.get(sessionId) : undefined)
+        ?? undefined
+      );
+    };
 
     registerTokenPilotCommand(api, logger);
 
@@ -301,7 +328,12 @@ module.exports = {
         if (blockReason) {
           return { block: true, blockReason };
         }
-        return { params: applyBeforeToolCallDefaults(event) };
+        const withDefaults = applyBeforeToolCallDefaults(event);
+        const withWorkspaceHint = applyWorkspacePathHintToToolParams(
+          { ...event, params: withDefaults },
+          resolveWorkspaceHintForEvent(event),
+        );
+        return { params: withWorkspaceHint ?? withDefaults };
       });
 
       hookOn(api, "after_tool_call", (event: any) => {
@@ -358,7 +390,9 @@ module.exports = {
       extractSessionKey,
       extractLastUserMessage,
       extractOpenClawSessionId,
+      extractWorkspaceDirFromMessages,
       normalizeTurnBindingMessage,
+      rememberWorkspaceHint,
       extractItemText: (item: any) => extractItemText(item, extractInputText),
       findLastUserItem,
       syncRawSemanticTurnsFromTranscript,

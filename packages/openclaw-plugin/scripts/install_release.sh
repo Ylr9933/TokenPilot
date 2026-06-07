@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${ECOCLAW_OPENCLAW_HOME:-/mnt/20t/xubuqiang}}"
+DEFAULT_OPENCLAW_HOME="${HOME}"
+OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${ECOCLAW_OPENCLAW_HOME:-${DEFAULT_OPENCLAW_HOME}}}"
 export HOME="${OPENCLAW_HOME}"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_CONFIG_HOME="${HOME}/.config"
@@ -99,8 +100,7 @@ entries = plugins.setdefault("entries", {})
 entries.pop("ecoclaw", None)
 tokenpilot = entries.get("tokenpilot")
 if not post_install:
-    tokenpilot = None
-    entries.pop("tokenpilot", None)
+    tokenpilot = entries.get("tokenpilot")
 else:
     tokenpilot = entries.setdefault("tokenpilot", {})
     tokenpilot["enabled"] = True
@@ -109,11 +109,20 @@ else:
 if post_install:
     allowed_top_level = {
         "enabled",
+        "logLevel",
         "proxyAutostart",
         "proxyPort",
         "proxyBaseUrl",
         "proxyApiKey",
+        "stateDir",
+        "debugTapProviderTraffic",
+        "debugTapPath",
+        "proxyMode",
+        "hooks",
+        "contextEngine",
+        "ux",
         "modules",
+        "summary",
         "eviction",
         "reduction",
         "taskStateEstimator",
@@ -124,7 +133,47 @@ if post_install:
             tokenpilot_cfg.pop(key, None)
 
     tokenpilot_cfg["enabled"] = True
+    tokenpilot_cfg["logLevel"] = str(tokenpilot_cfg.get("logLevel") or "info")
     tokenpilot_cfg["proxyAutostart"] = True
+    tokenpilot_cfg["proxyPort"] = int(tokenpilot_cfg.get("proxyPort") or 17667)
+    tokenpilot_cfg["debugTapProviderTraffic"] = bool(tokenpilot_cfg.get("debugTapProviderTraffic", False))
+
+    state_dir = tokenpilot_cfg.get("stateDir")
+    if not isinstance(state_dir, str) or not state_dir.strip():
+        tokenpilot_cfg["stateDir"] = os.path.join(os.path.expanduser("~"), ".openclaw", "tokenpilot-plugin-state")
+
+    proxy_mode = tokenpilot_cfg.get("proxyMode")
+    if not isinstance(proxy_mode, dict):
+        proxy_mode = {}
+    tokenpilot_cfg["proxyMode"] = {
+        "pureForward": bool(proxy_mode.get("pureForward", False)),
+    }
+
+    hooks_cfg = tokenpilot_cfg.get("hooks")
+    if not isinstance(hooks_cfg, dict):
+        hooks_cfg = {}
+    tokenpilot_cfg["hooks"] = {
+        "beforeToolCall": bool(hooks_cfg.get("beforeToolCall", True)),
+        "toolResultPersist": bool(hooks_cfg.get("toolResultPersist", False)),
+        "dynamicContextTarget": "user" if str(hooks_cfg.get("dynamicContextTarget", "developer")).strip().lower() == "user" else "developer",
+    }
+
+    context_engine = tokenpilot_cfg.get("contextEngine")
+    if not isinstance(context_engine, dict):
+        context_engine = {}
+    tokenpilot_cfg["contextEngine"] = {
+        "enabled": bool(context_engine.get("enabled", True)),
+        "pruneThresholdChars": max(10000, int(context_engine.get("pruneThresholdChars") or 100000)),
+        "keepRecentToolResults": max(0, int(context_engine.get("keepRecentToolResults") or 5)),
+        "placeholder": str(context_engine.get("placeholder") or "[pruned]"),
+    }
+
+    ux_cfg = tokenpilot_cfg.get("ux")
+    if not isinstance(ux_cfg, dict):
+        ux_cfg = {}
+    tokenpilot_cfg["ux"] = {
+        "details": bool(ux_cfg.get("details", False)),
+    }
 
     modules = tokenpilot_cfg.get("modules")
     if not isinstance(modules, dict):
@@ -135,6 +184,66 @@ if post_install:
         "reduction": bool(modules.get("reduction", True)),
         "eviction": bool(modules.get("eviction", False)),
     }
+
+    summary_cfg = tokenpilot_cfg.get("summary")
+    if not isinstance(summary_cfg, dict):
+        summary_cfg = {}
+    tokenpilot_cfg["summary"] = {
+        "summaryGenerationMode": "llm_full_context" if str(summary_cfg.get("summaryGenerationMode")).strip() == "llm_full_context" else "heuristic",
+        "summaryMaxOutputTokens": max(128, min(8192, int(summary_cfg.get("summaryMaxOutputTokens") or 1200))),
+    }
+
+    eviction_cfg = tokenpilot_cfg.get("eviction")
+    if not isinstance(eviction_cfg, dict):
+        eviction_cfg = {}
+    tokenpilot_cfg["eviction"] = {
+        "enabled": bool(eviction_cfg.get("enabled", False)),
+        "policy": str(eviction_cfg.get("policy") or "noop"),
+        "maxCandidateBlocks": max(1, int(eviction_cfg.get("maxCandidateBlocks") or 128)),
+        "minBlockChars": max(0, int(eviction_cfg.get("minBlockChars") or 256)),
+        "replacementMode": "drop" if str(eviction_cfg.get("replacementMode")).strip() == "drop" else "pointer_stub",
+    }
+
+    reduction_cfg = tokenpilot_cfg.get("reduction")
+    if not isinstance(reduction_cfg, dict):
+        reduction_cfg = {}
+    reduction_cfg["engine"] = "layered"
+    reduction_cfg["triggerMinChars"] = max(256, int(reduction_cfg.get("triggerMinChars") or 2200))
+    reduction_cfg["maxToolChars"] = max(256, int(reduction_cfg.get("maxToolChars") or 1200))
+
+    passes = reduction_cfg.get("passes")
+    if not isinstance(passes, dict):
+        passes = {}
+    reduction_cfg["passes"] = {
+        "repeatedReadDedup": bool(passes.get("repeatedReadDedup", True)),
+        "toolPayloadTrim": bool(passes.get("toolPayloadTrim", True)),
+        "htmlSlimming": bool(passes.get("htmlSlimming", True)),
+        "execOutputTruncation": bool(passes.get("execOutputTruncation", True)),
+        "agentsStartupOptimization": bool(passes.get("agentsStartupOptimization", True)),
+        "memoryFaultRecovery": bool(passes.get("memoryFaultRecovery", False)),
+    }
+
+    pass_options = reduction_cfg.get("passOptions")
+    if not isinstance(pass_options, dict):
+        pass_options = {}
+    reduction_cfg["passOptions"] = {
+        "formatSlimming": {
+            "enabled": bool(((pass_options.get("formatSlimming") or {}) if isinstance(pass_options.get("formatSlimming"), dict) else {}).get("enabled", True))
+        },
+        "formatCleaning": {
+            "enabled": bool(((pass_options.get("formatCleaning") or {}) if isinstance(pass_options.get("formatCleaning"), dict) else {}).get("enabled", True))
+        },
+        "pathTruncation": {
+            "enabled": bool(((pass_options.get("pathTruncation") or {}) if isinstance(pass_options.get("pathTruncation"), dict) else {}).get("enabled", True))
+        },
+        "imageDownsample": {
+            "enabled": bool(((pass_options.get("imageDownsample") or {}) if isinstance(pass_options.get("imageDownsample"), dict) else {}).get("enabled", True))
+        },
+        "lineNumberStrip": {
+            "enabled": bool(((pass_options.get("lineNumberStrip") or {}) if isinstance(pass_options.get("lineNumberStrip"), dict) else {}).get("enabled", True))
+        },
+    }
+    tokenpilot_cfg["reduction"] = reduction_cfg
 
 if isinstance(entries, dict) and not entries:
     plugins.pop("entries", None)
@@ -168,7 +277,6 @@ if isinstance(allow, list):
 
 entries = plugins.get("entries")
 if isinstance(entries, dict):
-    entries.pop("tokenpilot", None)
     entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
@@ -208,6 +316,8 @@ tar -xzf "${archive_path}" -C "${tmp_extract_dir}"
 cp -R "${tmp_extract_dir}/package/." "${INSTALLED_PLUGIN_PATH}/"
 rm -rf "${tmp_extract_dir}"
 sanitize_plugin_config 1
-openclaw_cmd gateway restart
+if ! openclaw_cmd gateway restart; then
+  printf '%s\n' "Warning: gateway restart failed; restart it manually if needed."
+fi
 
 printf 'Installed release plugin from %s\n' "${archive_path}"

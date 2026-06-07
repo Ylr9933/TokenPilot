@@ -12,6 +12,7 @@
   "files": [
     "dist/index.js",
     "dist/index.js.map",
+    "scripts/token_counter.py",
     "openclaw.plugin.json",
     "README.md"
   ],

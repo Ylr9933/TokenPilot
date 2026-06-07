@@ -14,8 +14,10 @@
 8. [proxy-runtime.ts 代码导读](./proxy-runtime.ts代码导读.md)
 9. [policy.ts 代码导读](./policy.ts代码导读.md)
 10. [运行与调试](./运行与调试.md)
+11. [OpenClaw 版本兼容记录](./OpenClaw版本兼容记录.md)
 
 额外说明：
 
 - `docs/scripts/smoke_isolated_gateway.sh` 仍保留，它是可执行的 smoke 脚本，不算历史说明文档。
 - `experiments/` 下的 README 和脚本继续作为实验入口，不再在 `docs/` 里重复维护一份计划文档。
+- 如果后面要迁移到同门那份较新的 TokenPilot 版本，先看一遍 [OpenClaw 版本兼容记录](./OpenClaw版本兼容记录.md)。

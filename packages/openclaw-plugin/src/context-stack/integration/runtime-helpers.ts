@@ -165,6 +165,8 @@ export function canonicalMessageTaskIds(
     : [];
 }
 
+import { extractScopedSessionKey } from "../../session/scoped-session-key.js";
+
 export function extractSessionKey(event: any): string {
   const agentMeta = event?.result?.meta?.agentMeta ?? event?.meta?.agentMeta ?? event?.agentMeta;
   const direct =
@@ -184,12 +186,8 @@ export function extractSessionKey(event: any): string {
     "";
   if (typeof direct === "string" && direct.trim().length > 0) return direct.trim();
 
-  const channel = String(event?.channel ?? event?.from?.channel ?? "unknown").trim();
-  const channelId = String(event?.channelId ?? event?.to?.id ?? event?.conversationId ?? "").trim();
-  const threadId = String(event?.messageThreadId ?? event?.threadId ?? "").trim();
-  const senderId = String(event?.senderId ?? event?.from?.id ?? "").trim();
-  const scoped = [channel, channelId, threadId, senderId].filter((x) => x.length > 0);
-  if (scoped.length > 0) return `scoped:${scoped.join(":")}`;
+  const scoped = extractScopedSessionKey(event);
+  if (scoped) return scoped;
 
   return "unknown";
 }

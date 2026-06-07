@@ -20,6 +20,9 @@ export type PluginHostConfig = {
     keepRecentToolResults?: number;
     placeholder?: string;
   };
+  ux?: {
+    details?: boolean;
+  };
 };
 
 export type TokenPilotMethodConfig = {

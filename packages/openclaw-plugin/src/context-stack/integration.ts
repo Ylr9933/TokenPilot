@@ -7,3 +7,4 @@ export * from "./integration/proxy-provider.js";
 export * from "./integration/upstream.js";
 export * from "./integration/trace-hooks.js";
 export * from "./integration/procedural-memory.js";
+export * from "./integration/ux-effects.js";

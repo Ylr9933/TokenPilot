@@ -12,6 +12,8 @@ import {
   maybeRegisterProxyProvider,
   startEmbeddedResponsesProxy,
 } from "../integration.js";
+import { extractScopedSessionKey } from "../../session/scoped-session-key.js";
+import { deriveCommandScopeKeys, persistCommandScopeBindings } from "../../session/command-scope-map.js";
 
 function logTaskStateMonitor(
   ctx: any,
@@ -133,6 +135,22 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
       persistRecentTurnBindingsToState(cfg.stateDir, recentTurnBindings);
     }
   };
+  const rememberScopedTurnBinding = (event: any, userMessage: string, upstreamSessionId?: string) => {
+    const scopedSessionKey = extractScopedSessionKey(event);
+    if (!scopedSessionKey) return;
+    rememberTurnBinding(userMessage, scopedSessionKey, upstreamSessionId);
+  };
+  const rememberCommandScopeBinding = (event: any, userMessage: string, upstreamSessionId?: string) => {
+    const normalizedSessionId = String(upstreamSessionId ?? "").trim();
+    if (!cfg.stateDir || !normalizedSessionId) return;
+    const entries = deriveCommandScopeKeys(event, userMessage).map((scopeKey) => ({
+      scopeKey,
+      sessionId: normalizedSessionId,
+      at: Date.now(),
+    }));
+    if (entries.length === 0) return;
+    persistCommandScopeBindings(cfg.stateDir, entries);
+  };
 
   const readExplicitPayloadSessionId = (payload: any): string | undefined => {
     const metadata = payload?.metadata && typeof payload.metadata === "object" ? payload.metadata : null;
@@ -253,7 +271,11 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
     const sessionKey = deps.extractSessionKey(event);
     const upstreamSessionId = deps.extractOpenClawSessionId(event) || topology.getUpstreamSessionId(sessionKey) || undefined;
     const userMessage = deps.extractLastUserMessage(event);
-    if (userMessage.trim()) rememberTurnBinding(userMessage, sessionKey, upstreamSessionId);
+    if (userMessage.trim()) {
+      rememberTurnBinding(userMessage, sessionKey, upstreamSessionId);
+      rememberScopedTurnBinding(event, userMessage, upstreamSessionId);
+      rememberCommandScopeBinding(event, userMessage, upstreamSessionId);
+    }
     if (!deps.debugEnabled) return;
     logger.debug(`[plugin-runtime] message_received session=${sessionKey}`);
   });
@@ -264,6 +286,8 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
     const sessionKey = deps.extractSessionKey(event);
     if (userMessage.trim() && sessionKey.trim()) {
       rememberTurnBinding(userMessage, sessionKey, upstreamSessionId || undefined);
+      rememberScopedTurnBinding(event, userMessage, upstreamSessionId || undefined);
+      rememberCommandScopeBinding(event, userMessage, upstreamSessionId || undefined);
       if (upstreamSessionId) topology.bindUpstreamSession(sessionKey, upstreamSessionId);
     }
     if (cfg.stateDir && upstreamSessionId) {

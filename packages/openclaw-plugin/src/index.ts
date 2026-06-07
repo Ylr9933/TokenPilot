@@ -68,7 +68,12 @@ import {
   maybeRegisterProxyProvider,
   normalizeConfig,
   ensureExplicitProxyModelsInConfig,
+  countTokensWithFallback,
+  recordUxEffect,
+  responsesPayloadToChatCompletions,
+  chatCompletionsToResponsesText,
   requestUpstreamResponses,
+  requestUpstreamResponsesStream,
   createPluginContextEngine,
   normalizeProxyModelId,
   registerRuntime,
@@ -88,6 +93,7 @@ import {
 } from "./trace/io.js";
 import { applyToolResultPersistPolicy } from "./context-stack/request-preprocessing/tool-results-persist-policy.js";
 import { contextSafeRecovery as importedContextSafeRecovery, hasRecoveryMarker as importedHasRecoveryMarker } from "./context-stack/page-in-api.js";
+import { registerTokenPilotCommand } from "./commands/tokenpilot-command.js";
 
 const TEST_WORKSPACE_DIR = "/tmp/tokenpilot-openclaw-plugin-tests";
 
@@ -124,9 +130,12 @@ const proxyRuntimeHelpers = {
   appendJsonl,
   appendForwardedInputDump,
   requestUpstreamResponses,
+  requestUpstreamResponsesStream,
   applyLayeredReductionAfterCall,
   applyLayeredReductionAfterCallToSse,
   isSseContentType,
+  countTokensWithFallback,
+  recordUxEffect,
 };
 
 const defaultBeforeCallTestHelpers = {
@@ -262,6 +271,8 @@ const __testHooks = {
   ),
   stripInternalPayloadMarkers,
   normalizeConfig,
+  responsesPayloadToChatCompletions,
+  chatCompletionsToResponsesText,
 };
 
 module.exports = {
@@ -272,6 +283,8 @@ module.exports = {
   register(api: any) {
     const logger = makeLogger(api?.logger);
     const cfg = normalizeConfig(api?.pluginConfig);
+
+    registerTokenPilotCommand(api, logger);
 
     if (!cfg.enabled) {
       logger.info("[plugin-runtime] Plugin disabled by config.");

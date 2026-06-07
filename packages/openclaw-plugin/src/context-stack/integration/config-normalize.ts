@@ -22,6 +22,7 @@ function normalizeHostConfig(raw: PluginHostConfig): NormalizedPluginHostConfig 
   const hooks = raw.hooks ?? {};
   const contextEngine = raw.contextEngine ?? {};
   const proxyMode = raw.proxyMode ?? {};
+  const ux = raw.ux ?? {};
 
   return {
     enabled: raw.enabled ?? true,
@@ -44,6 +45,9 @@ function normalizeHostConfig(raw: PluginHostConfig): NormalizedPluginHostConfig 
       pruneThresholdChars: Math.max(10_000, contextEngine.pruneThresholdChars ?? 100_000),
       keepRecentToolResults: Math.max(0, contextEngine.keepRecentToolResults ?? 5),
       placeholder: typeof contextEngine.placeholder === "string" && contextEngine.placeholder.trim().length > 0 ? contextEngine.placeholder : "[pruned]",
+    },
+    ux: {
+      details: ux.details ?? false,
     },
   };
 }

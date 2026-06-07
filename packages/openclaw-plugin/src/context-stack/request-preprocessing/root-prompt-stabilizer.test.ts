@@ -56,7 +56,11 @@ test("applyRootPromptRewriteToChatMessages rewrites system prompt and prepends d
   assert.match(rewritten.messages[0].content[0].text, /Your working directory is: <WORKDIR>/);
   assert.match(rewritten.messages[0].content[0].text, /^## AGENTS\.md$/m);
   assert.match(
+    rewritten.messages[0].content[0].text,
+    /- WORKDIR: \/tmp\/pinchbench\/0123\/agent_workspace_j0002\n- AGENT_ID: bench-dica-gpt-5-4-mini-0123-j0002/,
+  );
+  assert.match(
     rewritten.messages[1].content[0].text,
-    /- WORKDIR: \/tmp\/pinchbench\/0123\/agent_workspace_j0002\n- AGENT_ID: bench-dica-gpt-5-4-mini-0123-j0002\n\nAnalyze the spreadsheet and write a summary\./,
+    /Analyze the spreadsheet and write a summary\./,
   );
 });

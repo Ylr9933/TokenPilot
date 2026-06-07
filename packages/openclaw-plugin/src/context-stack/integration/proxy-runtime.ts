@@ -12,6 +12,31 @@ function extractItemText(item: any, extractInputText: (input: any) => string): s
   return extractInputText([item]).trim();
 }
 
+function stringifyStructuredValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function normalizeResponsesInputForUpstream(input: any): void {
+  if (!Array.isArray(input)) return;
+  for (const item of input) {
+    if (!item || typeof item !== "object") continue;
+    const type = String((item as any).type ?? "").toLowerCase();
+    if (type === "function_call" && typeof (item as any).arguments !== "string") {
+      (item as any).arguments = stringifyStructuredValue((item as any).arguments);
+      continue;
+    }
+    if (type === "function_call_output" && typeof (item as any).output !== "string") {
+      (item as any).output = stringifyStructuredValue((item as any).output);
+    }
+  }
+}
+
 function findLastUserItem(input: any): { userIndex: number; userItem: any | null } | null {
   if (!Array.isArray(input) || input.length === 0) return null;
   for (let i = input.length - 1; i >= 0; i -= 1) {
@@ -24,6 +49,85 @@ function findLastUserItem(input: any): { userIndex: number; userItem: any | null
   return null;
 }
 
+function extractResponseFunctionCalls(parsed: any): Array<{
+  id: string;
+  call_id: string;
+  name: string;
+  arguments: string;
+  status?: string;
+}> {
+  if (!parsed || typeof parsed !== "object") return [];
+  const output = Array.isArray(parsed.output) ? parsed.output : [];
+  const calls: Array<{
+    id: string;
+    call_id: string;
+    name: string;
+    arguments: string;
+    status?: string;
+  }> = [];
+  for (const item of output) {
+    if (!item || typeof item !== "object") continue;
+    if (String(item.type ?? "").toLowerCase() !== "function_call") continue;
+    const id = typeof item.id === "string" && item.id ? item.id : `call_${Date.now().toString(36)}_${calls.length}`;
+    const callId = typeof item.call_id === "string" && item.call_id ? item.call_id : id;
+    const name = typeof item.name === "string" ? item.name : "";
+    const args = typeof item.arguments === "string" ? item.arguments : "";
+    calls.push({
+      id,
+      call_id: callId,
+      name,
+      arguments: args,
+      status: typeof item.status === "string" ? item.status : undefined,
+    });
+  }
+  return calls;
+}
+
+function summarizeResponseFunctionCalls(parsed: any): Array<{
+  id: string;
+  call_id: string;
+  name: string;
+  argumentsLength: number;
+  argumentsPreview: string;
+  argumentsJsonParseOk: boolean;
+  parsedArgumentKeys: string[];
+  parsedPath: string | null;
+}> {
+  const calls = extractResponseFunctionCalls(parsed);
+  return calls.map((call) => {
+    let parsedArgs: any = null;
+    let argumentsJsonParseOk = false;
+    try {
+      parsedArgs = JSON.parse(call.arguments);
+      argumentsJsonParseOk = true;
+    } catch {
+      parsedArgs = null;
+    }
+    const parsedArgumentKeys =
+      parsedArgs && typeof parsedArgs === "object" && !Array.isArray(parsedArgs)
+        ? Object.keys(parsedArgs).slice(0, 12)
+        : [];
+    const parsedPath =
+      parsedArgs && typeof parsedArgs === "object" && !Array.isArray(parsedArgs)
+        ? typeof parsedArgs.path === "string"
+          ? parsedArgs.path
+          : typeof parsedArgs.file_path === "string"
+            ? parsedArgs.file_path
+            : null
+        : null;
+    return {
+      id: call.id,
+      call_id: call.call_id,
+      name: call.name,
+      argumentsLength: call.arguments.length,
+      argumentsPreview: call.arguments.slice(0, 300),
+      argumentsJsonParseOk,
+      parsedArgumentKeys,
+      parsedPath,
+    };
+  });
+}
+
 export async function startEmbeddedResponsesProxy(
   cfg: any,
   logger: any,
@@ -32,22 +136,35 @@ export async function startEmbeddedResponsesProxy(
 ): Promise<{ baseUrl: string; upstream: UpstreamConfig; close: () => Promise<void> } | null> {
   if (!cfg.proxyAutostart) return null;
   let upstream: UpstreamConfig | null = null;
+  const configuredProviderId = String((cfg as any).proxyProviderId ?? process.env.TOKENPILOT_UPSTREAM_PROVIDER ?? "").trim();
   if (cfg.proxyBaseUrl && cfg.proxyApiKey) {
-    const detected = await helpers.detectUpstreamConfig(logger);
+    const detected = await helpers.detectUpstreamConfig(logger, {
+      preferredProviderId: configuredProviderId || undefined,
+      preferredBaseUrl: cfg.proxyBaseUrl,
+      preferredApiKey: cfg.proxyApiKey,
+    });
     upstream = {
-      providerId: detected?.providerId ?? "configured",
+      providerId: configuredProviderId || detected?.providerId || "configured",
       baseUrl: cfg.proxyBaseUrl.replace(/\/+$/, ""),
       apiKey: cfg.proxyApiKey,
+      apiFamily: detected?.apiFamily ?? "openai-responses",
       models: detected?.models ?? [],
     };
-    logger.info(`[plugin-runtime] proxy using configured upstream: ${upstream.baseUrl}`);
+    logger.info(
+      `[plugin-runtime] proxy using configured upstream provider=${upstream.providerId} api=${upstream.apiFamily ?? "unknown"} baseUrl=${upstream.baseUrl}`,
+    );
   } else {
-    upstream = await helpers.detectUpstreamConfig(logger);
+    upstream = await helpers.detectUpstreamConfig(logger, {
+      preferredProviderId: configuredProviderId || undefined,
+    });
   }
   if (!upstream) {
     logger.warn("[plugin-runtime] no upstream provider discovered; proxy disabled.");
     return null;
   }
+  logger.info(
+    `[plugin-runtime] resolved upstream provider=${upstream.providerId} api=${upstream.apiFamily ?? "unknown"} baseUrl=${upstream.baseUrl}`,
+  );
 
   const policyModule = helpers.createPolicyModule(helpers.buildPolicyModuleConfigFromPluginConfig(cfg));
       const reductionPassOptions = cfg.reduction.passOptions ?? {};
@@ -70,6 +187,8 @@ export async function startEmbeddedResponsesProxy(
       for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       const body = Buffer.concat(chunks).toString("utf8");
       const payload = JSON.parse(body);
+      normalizeResponsesInputForUpstream(payload?.input);
+      const originalInputText = helpers.extractInputText(payload?.input);
       const model = String(payload?.model ?? "");
       const upstreamModel = helpers.normalizeProxyModelId(model);
       if (upstreamModel && upstreamModel !== model) {
@@ -264,6 +383,7 @@ export async function startEmbeddedResponsesProxy(
           reductionOverThreshold: reductionApplied.diagnostics?.overThresholdBlocks ?? 0,
         });
       }
+      const afterReductionInputText = helpers.extractInputText(payload?.input);
       if (!proxyPureForward && cfg.modules.reduction) {
         payload.__ecoclaw_reduction_applied = true;
       }
@@ -354,6 +474,37 @@ export async function startEmbeddedResponsesProxy(
       }
       payload.prompt_cache_retention = "24h";
       let activePayload = payload;
+      const isStreamingRequest = payload?.stream === true;
+      if (isStreamingRequest) {
+        const upstreamStreamResp = await helpers.requestUpstreamResponsesStream(upstream, activePayload, logger, cfg.stateDir);
+        if (cfg.stateDir) {
+          await helpers.appendTaskStateTrace(cfg.stateDir, {
+            stage: "proxy_stream_forward",
+            sessionId: resolvedSessionId,
+            model,
+            proxyPureForward,
+            responseContentType: upstreamStreamResp.headers["content-type"] ?? null,
+            transport: upstreamStreamResp.transport,
+          });
+        }
+        res.statusCode = upstreamStreamResp.status;
+        for (const [headerName, headerValue] of Object.entries(upstreamStreamResp.headers)) {
+          if (typeof headerValue !== "string" || headerValue.length === 0) continue;
+          const lower = headerName.toLowerCase();
+          if (lower === "content-length") continue;
+          res.setHeader(headerName, headerValue);
+        }
+        if (!res.hasHeader("content-type")) {
+          res.setHeader("content-type", "text/event-stream; charset=utf-8");
+        }
+        await new Promise<void>((resolve, reject) => {
+          upstreamStreamResp.stream.on("error", reject);
+          res.on("close", resolve);
+          upstreamStreamResp.stream.on("end", resolve);
+          upstreamStreamResp.stream.pipe(res);
+        });
+        return;
+      }
       let upstreamResp: UpstreamHttpResponse | null = null;
       let txt = "";
       let parsedResponseForMirror: any = null;
@@ -362,6 +513,7 @@ export async function startEmbeddedResponsesProxy(
       upstreamResp = await helpers.requestUpstreamResponses(upstream, activePayload, logger, cfg.stateDir);
       const upstreamRespNonNull = upstreamResp!;
       txt = upstreamRespNonNull.text;
+      const originalResponseText = txt;
       const beforeAfterCallTextChars = txt.length;
       responseContentType = upstreamRespNonNull.headers["content-type"] ?? "";
       try {
@@ -379,6 +531,7 @@ export async function startEmbeddedResponsesProxy(
               parsedResponseForMirror,
               reductionMaxToolChars,
               reductionTriggerMinChars,
+              resolvedSessionId,
               cfg.reduction.passes,
               {
                 repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
@@ -482,14 +635,19 @@ export async function startEmbeddedResponsesProxy(
         });
       }
       {
-        const parsedResponse = parsedResponseForMirror;
+        let parsedResponseSent: any = null;
+        try {
+          parsedResponseSent = JSON.parse(txt);
+        } catch {
+          parsedResponseSent = null;
+        }
         const responseAt = new Date().toISOString();
         const responseRequestId = createHash("sha1").update(JSON.stringify([
           responseAt,
           model,
           upstreamModel,
           activePayload?.prompt_cache_key ?? "",
-          parsedResponse?.id ?? "",
+          parsedResponseSent?.id ?? "",
           upstreamRespFinal.status,
         ])).digest("hex").slice(0, 16);
         const proxyRespLogPath = pluginStateSubdir(cfg.stateDir, "proxy-responses.jsonl");
@@ -503,11 +661,12 @@ export async function startEmbeddedResponsesProxy(
           transport: upstreamRespFinal.transport,
           promptCacheKey: activePayload?.prompt_cache_key,
           promptCacheRetention: activePayload?.prompt_cache_retention,
-          responseId: parsedResponse?.id ?? null,
-          previousResponseId: parsedResponse?.previous_response_id ?? null,
-          responsePromptCacheKey: parsedResponse?.prompt_cache_key ?? null,
-          responsePromptCacheRetention: parsedResponse?.prompt_cache_retention ?? null,
-          usage: parsedResponse?.usage ?? null,
+          responseId: parsedResponseSent?.id ?? null,
+          previousResponseId: parsedResponseSent?.previous_response_id ?? null,
+          responsePromptCacheKey: parsedResponseSent?.prompt_cache_key ?? null,
+          responsePromptCacheRetention: parsedResponseSent?.prompt_cache_retention ?? null,
+          usage: parsedResponseSent?.usage ?? null,
+          responseFunctionCalls: summarizeResponseFunctionCalls(parsedResponseSent),
           afterCallReduction: afterCallReduction ?? null,
           memoryFaultAutoReplayCount,
         };
@@ -524,10 +683,39 @@ export async function startEmbeddedResponsesProxy(
           extra: {
             status: upstreamRespFinal.status,
             transport: upstreamRespFinal.transport,
-            responseId: parsedResponse?.id ?? "",
+            responseId: parsedResponseSent?.id ?? "",
             responseReductionChanged: Boolean(afterCallReduction?.changed),
             responseReductionSavedChars: Number(afterCallReduction?.savedChars ?? 0),
             memoryFaultAutoReplayCount,
+          },
+        });
+      }
+      if (cfg.stateDir) {
+        const inputBeforeCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", originalInputText);
+        const inputAfterCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", afterReductionInputText);
+        const responseBeforeCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", originalResponseText);
+        const responseAfterCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", txt);
+        const countMode =
+          inputBeforeCount.mode === "litellm_tokens"
+          && inputAfterCount.mode === "litellm_tokens"
+          && responseBeforeCount.mode === "litellm_tokens"
+          && responseAfterCount.mode === "litellm_tokens"
+            ? "litellm_tokens"
+            : "chars";
+        const requestSavedCount = Math.max(0, inputBeforeCount.count - inputAfterCount.count);
+        const responseSavedCount = Math.max(0, responseBeforeCount.count - responseAfterCount.count);
+        const savedCount = requestSavedCount + responseSavedCount;
+        await helpers.recordUxEffect(cfg.stateDir, {
+          at: new Date().toISOString(),
+          sessionId: resolvedSessionId,
+          model: model || upstreamModel || "unknown",
+          countMode,
+          beforeCount: inputBeforeCount.count + responseBeforeCount.count,
+          afterCount: inputAfterCount.count + responseAfterCount.count,
+          savedCount,
+          details: {
+            requestSavedCount,
+            responseSavedCount,
           },
         });
       }

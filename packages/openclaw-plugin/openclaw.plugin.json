@@ -1,9 +1,17 @@
 {
   "id": "tokenpilot",
+  "activation": {
+    "onStartup": true
+  },
   "kind": "runtime",
   "name": "TokenPilot Runtime Optimizer",
   "version": "0.1.0",
   "description": "Token-efficiency runtime plugin for OpenClaw with pluggable routing and optimization hooks.",
+  "contracts": {
+    "tools": [
+      "memory_fault_recover"
+    ]
+  },
   "author": "TokenPilot",
   "homepage": "https://github.com/Xubqpanda/TokenPilot",
   "configSchema": {
@@ -82,6 +90,15 @@
             "type": "boolean",
             "default": false,
             "description": "Enable tool_result_persist artifact externalization for oversized tool results."
+          },
+          "dynamicContextTarget": {
+            "type": "string",
+            "enum": [
+              "developer",
+              "user"
+            ],
+            "default": "developer",
+            "description": "Where dynamic context should be injected for compatible requests."
           }
         }
       },
@@ -108,6 +125,18 @@
             "type": "string",
             "default": "[pruned]",
             "description": "Placeholder text used when canonical pruning rewrites old tool results."
+          }
+        }
+      },
+      "ux": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "User-facing reporting controls.",
+        "properties": {
+          "details": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show module-level savings details in report surfaces."
           }
         }
       },

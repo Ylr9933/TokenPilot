@@ -63,23 +63,3 @@ export function attachObservationMetadata(
     metadata: nextMetadata,
   };
 }
-
-export function createObservationSegment(input: ObservationSegmentInput): ContextSegment {
-  const base: ContextSegment = {
-    id: input.id,
-    kind: input.stability ?? "semi_stable",
-    text: input.text,
-    priority: input.priority ?? 6,
-    ...(input.source ? { source: input.source } : {}),
-  };
-
-  return attachObservationMetadata(base, {
-    role: input.role,
-    payloadKind: input.payloadKind,
-    toolName: input.toolName,
-    origin: input.origin,
-    mimeType: input.mimeType,
-    truncated: input.truncated,
-    metadata: input.metadata,
-  });
-}

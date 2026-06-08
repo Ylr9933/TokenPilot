@@ -11,21 +11,12 @@ export const RUNTIME_EVENT_TYPES = {
   REDUCTION_BEFORE_CALL_RECORDED: "reduction.before_call.recorded",
   REDUCTION_AFTER_CALL_RECORDED: "reduction.after_call.recorded",
   // Policy
-  POLICY_SUMMARY_REQUESTED: "policy.summary.requested",
-  POLICY_HANDOFF_REQUESTED: "policy.handoff.requested",
   POLICY_CACHE_JITTER_DETECTED: "policy.cache.jitter.detected",
   POLICY_CACHE_HEALTH_DECIDED: "policy.cache.health.decided",
   POLICY_CACHE_HEALTH_RESULT: "policy.cache.health.result",
   POLICY_REDUCTION_DECIDED: "policy.reduction.decided",
   // Branch materialization
   BRANCH_MATERIALIZED: "branch.materialized",
-  // Decision ledger
-  DECISION_L1_RECORDED: "decision.l1.recorded",
-  // Summary
-  SUMMARY_GENERATED: "summary.generated",
-  // Handoff
-  HANDOFF_REQUESTED: "handoff.requested",
-  HANDOFF_GENERATED: "handoff.generated",
   // Context state
   CONTEXT_STATE_AVAILABLE: "context.state.available",
   CONTEXT_STATE_UPDATED: "context.state.updated",
@@ -49,10 +40,6 @@ function toEventList(metadata?: Record<string, unknown>): RuntimeEvent[] {
     (v): v is RuntimeEvent =>
       typeof v === "object" && v !== null && "type" in v && "source" in v && "at" in v,
   );
-}
-
-export function getRuntimeEvents(metadata?: Record<string, unknown>): RuntimeEvent[] {
-  return toEventList(metadata);
 }
 
 export function appendRuntimeEvent(
@@ -84,11 +71,4 @@ export function appendResultEvent(
     ...result,
     metadata: appendRuntimeEvent(result.metadata, event),
   };
-}
-
-export function findRuntimeEventsByType(
-  metadata: Record<string, unknown> | undefined,
-  type: RuntimeEventType,
-): RuntimeEvent[] {
-  return toEventList(metadata).filter((e) => e.type === type);
 }

@@ -121,7 +121,6 @@ export type PersistedMessageKind =
   | "message"
   | "summary"
   | "checkpoint_seed"
-  | "handoff"
   | "reduction"
   | "context_snapshot"
   | (string & {});
@@ -165,24 +164,4 @@ export type PersistedSessionMeta = {
   turnCount: number;
   messageCount?: number;
   branchCount?: number;
-};
-
-export type DecisionConfidenceLevel = "low" | "medium" | "high";
-
-export type DecisionEvidence = {
-  source: string;
-  key: string;
-  value: string | number | boolean;
-};
-
-export type DecisionRecord = {
-  module: string;
-  decision: string;
-  reason: string;
-  confidence: number;
-  confidenceLevel: DecisionConfidenceLevel;
-  apiFamily: ApiFamily;
-  evidence: DecisionEvidence[];
-  at: string;
-  metadata?: Record<string, unknown>;
 };

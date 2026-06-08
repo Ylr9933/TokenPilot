@@ -33,103 +33,7 @@ The main goal of this README is to help a new user install the plugin and run it
 
 ## 📢 News
 
-- **[2026-06-08]** TokenPilot open-source README is being reorganized for practical public use.
-- **[2026-05-01]** TokenPilot is released.
-
-<span id='reproduction'/>
-
-## 🧪 Reproduction Scripts
-
-We provide benchmark adapters and runnable scripts for reproducing the main evaluation pipelines.
-If you only want to use the plugin, you can skip this section and go straight to [Installation](#installation) and [Quick Start](#quickstart).
-
-Main entrypoints:
-
-- high-level experiment notes: [experiments/README.md](./experiments/README.md)
-- Claw-Eval adapter: [experiments/claw-eval/README.md](./experiments/claw-eval/README.md)
-- plugin package details: [packages/openclaw-plugin/README.md](./packages/openclaw-plugin/README.md)
-
-Example Claw-Eval method smoke:
-
-```bash
-bash experiments/claw-eval/scripts/run_method.sh \
-  --scope suite \
-  --suite T001zh_email_triage \
-  --session-mode isolated \
-  --profile reduction \
-  --model tokenpilot/gpt-5.4-mini
-```
-
-Example Claw-Eval baseline smoke:
-
-```bash
-bash experiments/claw-eval/scripts/run_baseline.sh \
-  --scope suite \
-  --suite T001zh_email_triage \
-  --session-mode isolated \
-  --model tokenpilot/gpt-5.4-mini
-```
-
-Notes:
-
-- `claw-eval` still requires a valid OpenClaw runtime environment
-- some benchmark assets, especially `dataset/general/`, are not committed
-- PinchBench migration is in progress and not yet the cleanest public entrypoint
-
-<span id='baseline-evaluation'/>
-
-## 🧪 Baseline Evaluation
-
-TokenPilot currently ships with benchmark adapters around the OpenClaw runtime workflow rather than a standalone unified leaderboard script.
-
-The most relevant public evaluation surfaces are:
-
-- `experiments/claw-eval/scripts/run_baseline.sh`
-- `experiments/claw-eval/scripts/run_method.sh`
-
-For benchmark-specific setup and caveats, see:
-
-- [experiments/README.md](./experiments/README.md)
-- [experiments/claw-eval/README.md](./experiments/claw-eval/README.md)
-
-<span id='demo'/>
-
-## 🎥 Demo & Tutorials
-
-There is no polished public demo video or notebook tutorial yet.
-
-For now, the most practical runnable demo is:
-
-- the plugin install flow in [Installation](#installation)
-- the session verification flow in [Quick Start](#quickstart)
-- the isolated gateway smoke script in [docs/scripts/smoke_isolated_gateway.sh](./docs/scripts/smoke_isolated_gateway.sh)
-
-<span id='todo'/>
-
-## ☑️ Todo List
-
-- Add public paper link and citation block
-- Add a cleaner end-to-end OpenClaw walkthrough
-- Consolidate benchmark entrypoints further inside `experiments/`
-- Add more public-facing examples for common OpenClaw workflows
-
-<span id='contents'/>
-
-## 📑 Table of Contents
-
-* <a href='#news'>📢 News</a>
-* <a href='#reproduction'>🧪 Reproduction Scripts</a>
-* <a href='#baseline-evaluation'>🧪 Baseline Evaluation</a>
-* <a href='#demo'>🎥 Demo & Tutorials</a>
-* <a href='#todo'>☑️ Todo List</a>
-* <a href='#installation'>🔧 Installation</a>
-* <a href='#quickstart'>⚡ Quick Start</a>
-* <a href='#architecture'>🏗️ Architecture</a>
-* <a href='#examples'>💡 Examples</a>
-* <a href='#experimental-results'>📁 Experimental Results</a>
-* <a href='#configuration'>⚙️ Configuration</a>
-* <a href='#contributors'>👥 Contributors</a>
-* <a href='#related'>🔗 Related Projects</a>
+- **[2026-06-08]** TokenPilot is released.
 
 <span id='installation'/>
 
@@ -192,7 +96,7 @@ tokenpilot/gpt-5.4-mini
 
 For a first run, use a `tokenpilot/...` model instead of your original provider model.
 
-### 2. Verify the Plugin in a Real Session
+### 2. Verify It in a Real Session
 
 The simplest manual verification flow is:
 
@@ -211,13 +115,13 @@ You should see a status block similar to:
 - stabilizer enabled
 - reduction enabled
 
-For a richer report, run:
+For a fuller runtime summary, run:
 
 ```text
 /tokenpilot report
 ```
 
-After a real session, TokenPilot state is usually written under:
+After a few turns, TokenPilot state is usually written under:
 
 ```text
 ~/.openclaw/tokenpilot-plugin-state/tokenpilot/
@@ -229,7 +133,7 @@ Useful files include:
 - `provider-traffic.jsonl`
 - `forwarded-inputs/`
 
-### 3. Run the Repo-Provided Smoke Test
+### 3. Run the Built-In Smoke Test
 
 ```bash
 bash docs/scripts/smoke_isolated_gateway.sh
@@ -260,7 +164,10 @@ The smoke script will:
 
 ## 🏗️ Architecture
 
-TokenPilot is built around three runtime mechanisms:
+TokenPilot sits between OpenClaw and your upstream model provider.
+The plugin layer receives session traffic, normalizes it, and routes the request through runtime-core before forwarding it upstream.
+
+Its public behavior is built around three runtime mechanisms:
 
 ### 1. Stable Prefix
 
@@ -289,7 +196,7 @@ For continuous multi-task sessions, TokenPilot tracks task lifecycle states such
 
 This allows the runtime to remove cold completed tasks instead of replaying them forever.
 
-The most important code for open-source users is in:
+The most important source directories for open-source users are:
 
 - `packages/openclaw-plugin/`
 - `packages/runtime-core/`
@@ -335,29 +242,11 @@ Eviction:
 /tokenpilot eviction off
 ```
 
-For most users, the recommended first path is:
+For most users, the recommended default is:
 
 - keep **stabilizer** on
 - keep **reduction** on
 - leave **eviction** for longer continuous workflows or benchmark reproduction
-
-<span id='experimental-results'/>
-
-## 📁 Experimental Results
-
-The repository includes runnable benchmark adapters, but this README intentionally keeps the homepage focused on practical open-source usage rather than detailed paper tables.
-
-For experimental scripts and benchmark notes, see:
-
-- [experiments/README.md](./experiments/README.md)
-- [experiments/claw-eval/README.md](./experiments/claw-eval/README.md)
-
-Headline paper result:
-
-- **Isolated mode**: up to **61%** lower inference cost on PinchBench and **56%** on Claw-Eval
-- **Continuous mode**: up to **61%** lower inference cost on PinchBench and **87%** on Claw-Eval
-
-The paper link will be added here after release.
 
 <span id='configuration'/>
 
@@ -491,7 +380,16 @@ The plugin entry usually lives under:
 | `memory.topK` | `number` | `0` | Maximum number of retrieved skills injected per request. |
 | `memory.injectAsSystemHint` | `boolean` | `false` | Inject retrieved skills as a system hint instead of a user-prefix. |
 
-If you want the full raw schema, see:
+If you only want a practical starting point, configure these first:
+
+- `enabled`
+- `proxyBaseUrl`
+- `proxyApiKey`
+- `modules.stabilizer`
+- `modules.reduction`
+- `modules.eviction`
+
+If you need the full raw schema, see:
 
 - [packages/openclaw-plugin/openclaw.plugin.json](./packages/openclaw-plugin/openclaw.plugin.json)
 
@@ -509,30 +407,3 @@ OPENCLAW_CONFIG_PATH="$HOME/.openclaw/openclaw.json" openclaw config validate
 ```
 
 - If the plugin is installed but you still used the original model, switch to a `tokenpilot/<model>` model key.
-
-<span id='contributors'/>
-
-## 👥 Contributors
-
-Contributor details will be added after the open-source release metadata is finalized.
-
-<span id='related'/>
-
-## 🔗 Related Projects
-
-- [LightMem](https://github.com/zjunlp/LightMem)
-- [OpenClaw](https://github.com/openclaw/openclaw)  
-
-## Repository Structure
-
-```text
-TokenPilot/
-├── docs/                         # public-facing operational notes and smoke helper
-├── experiments/                  # benchmark adapters and reproduction scripts
-├── figs/                         # figures used in the README
-├── packages/
-│   ├── openclaw-plugin/          # main OpenClaw plugin package
-│   └── runtime-core/             # shared runtime logic and reduction/recovery code
-├── dist/                         # built artifacts
-└── README.md
-```

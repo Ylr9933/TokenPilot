@@ -1,6 +1,6 @@
 import type { RuntimeModule, RuntimeModuleRuntime, RuntimeTurnContext } from "@tokenpilot/kernel";
 import type { PolicyModuleConfig } from "@tokenpilot/decision";
-import { applyPolicyMonitors } from "./runtime-register.js";
+import { applyPolicyMonitors } from "./runtime-policy-monitors.js";
 import { asRecord, type NormalizedPluginRuntimeConfig, type PluginLogger } from "./config-types.js";
 
 const NULL_RUNTIME: RuntimeModuleRuntime = {
@@ -16,7 +16,6 @@ export function buildPolicyModuleConfigFromPluginConfig(cfg: NormalizedPluginRun
     reductionEnabled: false,
     reductionFormatSlimmingEnabled: false,
     reductionSemanticEnabled: false,
-    handoffEnabled: false,
     evictionEnabled: cfg.modules.eviction && cfg.eviction.enabled,
     evictionPolicy: cfg.eviction.policy,
     evictionMinBlockChars: cfg.eviction.minBlockChars,
@@ -37,8 +36,6 @@ export function buildPolicyModuleConfigFromPluginConfig(cfg: NormalizedPluginRun
           evictionPromotionHotTailSize: cfg.taskStateEstimator.evictionPromotionHotTailSize,
         }
       : { enabled: false },
-    summaryGenerationMode: cfg.summary.summaryGenerationMode,
-    summaryMaxOutputTokens: cfg.summary.summaryMaxOutputTokens,
     cacheHealthEnabled: false,
   };
 }

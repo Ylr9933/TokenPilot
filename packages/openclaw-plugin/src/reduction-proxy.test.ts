@@ -180,7 +180,6 @@ test("applyProxyReductionToInput still runs with policy-only before-call modules
         reductionEnabled: false,
         reductionFormatSlimmingEnabled: false,
         reductionSemanticEnabled: false,
-        handoffEnabled: false,
         evictionEnabled: false,
         cacheHealthEnabled: false,
       }),

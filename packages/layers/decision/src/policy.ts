@@ -58,12 +58,6 @@ export type PolicyModuleConfig = {
   localityStructuralPayloadMinChars?: number;
   localityErrorMinChars?: number;
   localitySubtaskBoundaryMinMessages?: number;
-  summaryGenerationMode?: "llm_full_context" | "heuristic";
-  summaryMaxOutputTokens?: number;
-  handoffEnabled?: boolean;
-  handoffGenerationMode?: "llm_full_context" | "heuristic";
-  handoffMaxOutputTokens?: number;
-  handoffCooldownTurns?: number;
   reductionEnabled?: boolean;
   reductionToolPayloadMinChars?: number;
   reductionFormatSlimmingEnabled?: boolean;
@@ -73,7 +67,6 @@ export type PolicyModuleConfig = {
   evictionEnabled?: boolean;
   evictionPolicy?: EvictionPolicy;
   evictionMinBlockChars?: number;
-  requestCooldownTurns?: number;
   cacheJitterWindowTurns?: number;
   cacheMissRateThreshold?: number;
   minTurnsBeforeJitter?: number;
@@ -91,17 +84,6 @@ export type PolicyCacheHealthMode = "warm" | "uncertain" | "cold";
 
 export type PolicyOnlineConfigSnapshot = {
   locality: PolicyLocalityConfig;
-  summary: {
-    generationMode: "llm_full_context" | "heuristic";
-    maxOutputTokens: number;
-    cooldownTurns: number;
-  };
-  handoff: {
-    enabled: boolean;
-    generationMode: "llm_full_context" | "heuristic";
-    maxOutputTokens: number;
-    cooldownTurns: number;
-  };
   reduction: {
     enabled: boolean;
     toolPayloadMinChars: number;
@@ -114,11 +96,6 @@ export type PolicyOnlineConfigSnapshot = {
     enabled: boolean;
     policy: EvictionPolicy;
     minBlockChars: number;
-  };
-  turnLocal: {
-    enabled: boolean;
-    delayTurns: number;
-    minChars: number;
   };
   cache: {
     telemetryWindowTurns: number;
@@ -140,8 +117,6 @@ export type PolicyOnlineStateSnapshot = {
   stableChars: number;
   cumulativeInputTokens: number;
   recentCacheMissRate: number;
-  summaryCooldownActive: boolean;
-  handoffCooldownActive: boolean;
   recentMissCount: number;
   cacheHealth: {
     mode: PolicyCacheHealthMode;
@@ -156,8 +131,6 @@ export type PolicyOnlineSignals = {
   promptChars: number;
   reductionToolPayloadSegmentCount: number;
   reductionToolPayloadChars: number;
-  summaryReasons: string[];
-  handoffReasons: string[];
   reductionReasons: string[];
   evictionReasons: string[];
   locality: {
@@ -170,12 +143,8 @@ export type PolicyOnlineSignals = {
     activeReplayChars: number;
     protectedMessageIds: string[];
     protectedChars: number;
-    summaryCandidateMessageIds: string[];
-    summaryCandidateChars: number;
     reductionCandidateMessageIds: string[];
     reductionCandidateChars: number;
-    handoffCandidateMessageIds: string[];
-    handoffCandidateChars: number;
     errorCandidateMessageIds: string[];
   };
   cacheHealth: {
@@ -197,15 +166,6 @@ export type PolicyRoiEstimate = {
   notes: string[];
 };
 
-export type PolicySemanticTarget = "summary" | "handoff";
-export type PolicySemanticPurpose = "range_summary" | "checkpoint_seed" | "task_handoff";
-export type PolicySemanticGenerationMode = "llm_full_context" | "heuristic";
-export type PolicySemanticArbitration =
-  | "not_requested"
-  | "direct"
-  | "llm_budget_owner"
-  | "llm_budget_downgrade";
-
 export type PolicyReductionRoiSnapshot = {
   beforeCall: PolicyRoiEstimate;
   afterCall: PolicyRoiEstimate;
@@ -213,31 +173,8 @@ export type PolicyReductionRoiSnapshot = {
 };
 
 export type PolicyOnlineRoiSnapshot = {
-  summary: PolicyRoiEstimate;
-  handoff: PolicyRoiEstimate;
   reduction: PolicyReductionRoiSnapshot;
 };
-
-export type PolicySummaryDecision = {
-  enabled: boolean;
-  purpose: "range_summary";
-  requested: boolean;
-  reasons: string[];
-  cooldownActive: boolean;
-  generationMode: PolicySemanticGenerationMode;
-  arbitration: PolicySemanticArbitration;
-};
-
-export type PolicyHandoffDecision = {
-  enabled: boolean;
-  purpose: "task_handoff";
-  requested: boolean;
-  reasons: string[];
-  cooldownActive: boolean;
-  generationMode: PolicySemanticGenerationMode;
-  arbitration: PolicySemanticArbitration;
-};
-
 
 export type PolicyEvictionDecision = {
   enabled: boolean;
@@ -285,22 +222,12 @@ export type PolicyCacheHealthDecision = {
   hitFresh: boolean;
 };
 
-export type PolicySemanticBudgetDecision = {
-  configuredGenerationMode: PolicySemanticGenerationMode;
-  maxLlmCallsThisTurn: number;
-  plannedLlmCalls: PolicySemanticTarget[];
-  heuristicFallbacks: PolicySemanticTarget[];
-  llmBudgetOwner?: PolicySemanticTarget;
-};
-
 export type PolicyLocalityDecision = {
   enabled: boolean;
   dominantAction: LocalityActionHint | "mixed" | "observe";
   signalCount: number;
   protectedMessageIds: string[];
-  summaryCandidateMessageIds: string[];
   reductionCandidateMessageIds: string[];
-  handoffCandidateMessageIds: string[];
   errorCandidateMessageIds: string[];
   signals: PolicyLocalitySignal[];
 };
@@ -308,8 +235,6 @@ export type PolicyLocalityDecision = {
 import type { ReductionInstruction } from "./types.js";
 
 export type PolicyOnlineDecisions = {
-  summary: PolicySummaryDecision;
-  handoff: PolicyHandoffDecision;
   reduction: {
     enabled: boolean;
     beforeCallPassIds: string[];
@@ -321,7 +246,6 @@ export type PolicyOnlineDecisions = {
   taskState?: PolicyTaskStateDecision;
   locality: PolicyLocalityDecision;
   cacheHealth: PolicyCacheHealthDecision;
-  semantic: PolicySemanticBudgetDecision;
 };
 
 export type PolicyOnlineMetadata = {
@@ -337,8 +261,6 @@ export type PolicyOnlineMetadata = {
 
 type PolicySessionState = {
   completedTurns: number;
-  lastSummaryRequestTurn?: number;
-  lastHandoffRequestTurn?: number;
   recentCacheReadHit: number[];
   cumulativeInputTokens: number;
   cacheHealth: {
@@ -352,12 +274,6 @@ type PolicySessionState = {
 
 type NormalizedPolicyConfig = {
   locality: PolicyLocalityConfig;
-  summaryGenerationMode: PolicySemanticGenerationMode;
-  summaryMaxOutputTokens: number;
-  handoffEnabled: boolean;
-  handoffGenerationMode: PolicySemanticGenerationMode;
-  handoffMaxOutputTokens: number;
-  handoffCooldownTurns: number;
   reductionEnabled: boolean;
   reductionToolPayloadMinChars: number;
   reductionFormatSlimmingEnabled: boolean;
@@ -367,7 +283,6 @@ type NormalizedPolicyConfig = {
   evictionEnabled: boolean;
   evictionPolicy: EvictionPolicy;
   evictionMinBlockChars: number;
-  requestCooldownTurns: number;
   cacheJitterWindowTurns: number;
   cacheMissRateThreshold: number;
   minTurnsBeforeJitter: number;
@@ -755,8 +670,6 @@ type PolicyAnalysis = {
   promptChars: number;
   reductionToolPayloadSegmentCount: number;
   reductionToolPayloadChars: number;
-  summaryReasons: string[];
-  handoffReasons: string[];
   reductionReasons: string[];
   reductionBeforeCallPassIds: string[];
   reductionAfterCallPassIds: string[];
@@ -765,15 +678,6 @@ type PolicyAnalysis = {
   evictionDecision: PolicyEvictionDecision;
   locality: PolicyLocalityAnalysis;
   roi: PolicyOnlineRoiSnapshot;
-  summaryCooldownActive: boolean;
-  handoffCooldownActive: boolean;
-  requestSummary: boolean;
-  requestHandoff: boolean;
-  summaryGenerationMode: PolicySemanticGenerationMode;
-  handoffGenerationMode: PolicySemanticGenerationMode;
-  summaryArbitration: PolicySemanticArbitration;
-  handoffArbitration: PolicySemanticArbitration;
-  semanticBudget: PolicySemanticBudgetDecision;
   cacheHealth: {
     supported: boolean;
     due: boolean;
@@ -784,14 +688,9 @@ type PolicyAnalysis = {
 };
 
 const POLICY_DEFAULT_CHARS_PER_TOKEN = 4;
-const POLICY_DEFAULT_SUMMARY_COMPRESSION_RATIO = 0.22;
 const POLICY_DEFAULT_TOOL_TRIM_KEEP_RATIO = 0.35;
 const POLICY_DEFAULT_FORMAT_SLIMMING_RATIO = 0.02;
 const POLICY_DEFAULT_FORMAT_SLIMMING_MIN_SAVED_TOKENS = 8;
-const POLICY_DEFAULT_SUMMARY_MIN_NET_TOKENS = 24;
-const POLICY_DEFAULT_HANDOFF_MIN_NET_TOKENS = 24;
-const POLICY_DEFAULT_HANDOFF_FUTURE_REUSE_MIN = 2;
-const POLICY_DEFAULT_HANDOFF_FUTURE_REUSE_MAX = 5;
 
 const toNum = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -937,12 +836,6 @@ function normalizeConfig(cfg: PolicyModuleConfig): NormalizedPolicyConfig {
       errorMinChars: Math.max(16, cfg.localityErrorMinChars ?? 24),
       subtaskBoundaryMinMessages: Math.max(2, cfg.localitySubtaskBoundaryMinMessages ?? 2),
     },
-    summaryGenerationMode: cfg.summaryGenerationMode ?? "heuristic",
-    summaryMaxOutputTokens: Math.max(128, cfg.summaryMaxOutputTokens ?? 1200),
-    handoffEnabled: cfg.handoffEnabled ?? false,
-    handoffGenerationMode: cfg.handoffGenerationMode ?? "heuristic",
-    handoffMaxOutputTokens: Math.max(128, cfg.handoffMaxOutputTokens ?? 900),
-    handoffCooldownTurns: Math.max(0, cfg.handoffCooldownTurns ?? 4),
     reductionEnabled: cfg.reductionEnabled ?? true,
     reductionToolPayloadMinChars: Math.max(1, cfg.reductionToolPayloadMinChars ?? 200),
     reductionFormatSlimmingEnabled: cfg.reductionFormatSlimmingEnabled ?? true,
@@ -952,7 +845,6 @@ function normalizeConfig(cfg: PolicyModuleConfig): NormalizedPolicyConfig {
     evictionEnabled: cfg.evictionEnabled ?? false,
     evictionPolicy: cfg.evictionPolicy ?? "noop",
     evictionMinBlockChars: Math.max(16, cfg.evictionMinBlockChars ?? 256),
-    requestCooldownTurns: Math.max(0, cfg.requestCooldownTurns ?? 2),
     cacheJitterWindowTurns: Math.max(3, cfg.cacheJitterWindowTurns ?? 6),
     cacheMissRateThreshold: Math.min(1, Math.max(0, cfg.cacheMissRateThreshold ?? 0.5)),
     minTurnsBeforeJitter: Math.max(1, cfg.minTurnsBeforeJitter ?? 4),
@@ -986,7 +878,7 @@ function normalizeConfig(cfg: PolicyModuleConfig): NormalizedPolicyConfig {
 
 function collectSignalReasons(
   locality: PolicyLocalityAnalysis,
-  action: "summary" | "handoff" | "reduction",
+  action: "reduction",
 ): string[] {
   const reasons: string[] = [];
   for (const signal of locality.signals) {
@@ -1070,16 +962,7 @@ function analyzePolicyBeforeBuild(
   const historyView = buildHistoryView(ctx);
   const promptTokensEstimate = estimateTokensFromChars(promptChars);
   const reductionTargetTokens = estimateTokensFromChars(locality.reductionCandidateChars);
-  const summaryTargetTokens = estimateTokensFromChars(locality.summaryCandidateChars);
-  const handoffTargetTokens = estimateTokensFromChars(
-    Math.max(locality.handoffCandidateChars, locality.summaryCandidateChars),
-  );
   const reductionToolPayloadTokens = estimateTokensFromChars(reductionStats.chars);
-  const expectedHandoffReuseTurns = clamp(
-    Math.ceil((state.completedTurns + 1) / 2),
-    POLICY_DEFAULT_HANDOFF_FUTURE_REUSE_MIN,
-    POLICY_DEFAULT_HANDOFF_FUTURE_REUSE_MAX,
-  );
 
   const toolTrimSavedTokens = Math.max(
     reductionTargetTokens,
@@ -1088,22 +971,6 @@ function analyzePolicyBeforeBuild(
   const formatSlimmingSavedTokens = Math.max(
     POLICY_DEFAULT_FORMAT_SLIMMING_MIN_SAVED_TOKENS,
     Math.round(promptTokensEstimate * POLICY_DEFAULT_FORMAT_SLIMMING_RATIO),
-  );
-  const summaryEstimatedOutputTokens = Math.max(
-    32,
-    Math.round(summaryTargetTokens * POLICY_DEFAULT_SUMMARY_COMPRESSION_RATIO),
-  );
-  const summaryEstimatedCostTokens =
-    config.summaryGenerationMode === "heuristic"
-      ? 0
-      : promptTokensEstimate + Math.min(config.summaryMaxOutputTokens, Math.max(summaryEstimatedOutputTokens, 64));
-  const summaryEstimatedBenefitTokens = summaryTargetTokens * Math.max(1, expectedHandoffReuseTurns - 1);
-  const handoffEstimatedCostTokens =
-    config.handoffGenerationMode === "heuristic"
-      ? 0
-      : promptTokensEstimate + config.handoffMaxOutputTokens;
-  const handoffEstimatedBenefitTokens = Math.round(
-    (handoffTargetTokens + Math.round(promptTokensEstimate * 0.4)) * expectedHandoffReuseTurns,
   );
 
   const reductionPassRoi: Record<string, PolicyRoiEstimate> = {
@@ -1156,32 +1023,8 @@ function analyzePolicyBeforeBuild(
     confidence: "low",
     notes: ["semantic_requires_observed_output"],
   });
-  const summaryRoi = buildRoiEstimate({
-    savedTokens: summaryEstimatedBenefitTokens,
-    costTokens: summaryEstimatedCostTokens,
-    minNetTokens: config.summaryGenerationMode === "heuristic" ? 0 : POLICY_DEFAULT_SUMMARY_MIN_NET_TOKENS,
-    confidence: config.summaryGenerationMode === "heuristic" ? "high" : "medium",
-    notes: [
-      `summary_candidate_tokens=${summaryTargetTokens}`,
-      `generation_mode=${config.summaryGenerationMode}`,
-    ],
-  });
-  const handoffRoi = buildRoiEstimate({
-    savedTokens: handoffEstimatedBenefitTokens,
-    costTokens: handoffEstimatedCostTokens,
-    minNetTokens:
-      config.handoffGenerationMode === "heuristic" ? 0 : POLICY_DEFAULT_HANDOFF_MIN_NET_TOKENS,
-    confidence: config.handoffGenerationMode === "heuristic" ? "medium" : "low",
-    notes: [
-      `handoff_candidate_tokens=${handoffTargetTokens}`,
-      `expected_reuse_turns=${expectedHandoffReuseTurns}`,
-      `generation_mode=${config.handoffGenerationMode}`,
-    ],
-  });
 
   const roi: PolicyOnlineRoiSnapshot = {
-    summary: summaryRoi,
-    handoff: handoffRoi,
     reduction: {
       beforeCall: reductionBeforeCallRoi,
       afterCall: reductionAfterCallRoi,
@@ -1189,8 +1032,6 @@ function analyzePolicyBeforeBuild(
     },
   };
 
-  const summaryReasons = collectSignalReasons(locality, "summary");
-  const handoffReasons = config.handoffEnabled ? collectSignalReasons(locality, "handoff") : [];
   const evictionReasons: string[] = config.evictionEnabled
     ? [`eviction_policy=${config.evictionPolicy}`]
     : [];
@@ -1300,80 +1141,6 @@ function analyzePolicyBeforeBuild(
     ...lineNumberStripDecision.instructions,
   ].sort((a, b) => b.priority - a.priority);
 
-  const summaryCooldownActive =
-    typeof state.lastSummaryRequestTurn === "number" &&
-    state.completedTurns - state.lastSummaryRequestTurn <= config.requestCooldownTurns;
-  const handoffCooldownActive =
-    typeof state.lastHandoffRequestTurn === "number" &&
-    state.completedTurns - state.lastHandoffRequestTurn <= config.handoffCooldownTurns;
-
-  const requestSummary =
-    summaryReasons.length > 0 &&
-    !summaryCooldownActive &&
-    summaryRoi.recommended;
-  const requestHandoff =
-    config.handoffEnabled &&
-    handoffReasons.length > 0 &&
-    !handoffCooldownActive &&
-    handoffRoi.recommended;
-
-  let summaryGenerationMode: PolicySemanticGenerationMode = requestSummary
-    ? config.summaryGenerationMode
-    : "heuristic";
-  let handoffGenerationMode: PolicySemanticGenerationMode = requestHandoff
-    ? config.handoffGenerationMode
-    : "heuristic";
-  let summaryArbitration: PolicySemanticArbitration = requestSummary ? "direct" : "not_requested";
-  let handoffArbitration: PolicySemanticArbitration = requestHandoff ? "direct" : "not_requested";
-  const semanticBudget: PolicySemanticBudgetDecision = {
-    configuredGenerationMode:
-      requestHandoff && config.handoffGenerationMode === "llm_full_context"
-        ? "llm_full_context"
-        : config.summaryGenerationMode,
-    maxLlmCallsThisTurn: 1,
-    plannedLlmCalls: [],
-    heuristicFallbacks: [],
-  };
-
-  const llmCandidates: PolicySemanticTarget[] = [];
-  if (requestSummary && config.summaryGenerationMode === "llm_full_context") llmCandidates.push("summary");
-  if (requestHandoff && config.handoffGenerationMode === "llm_full_context") llmCandidates.push("handoff");
-
-  if (llmCandidates.length === 1) {
-    const owner = llmCandidates[0];
-    semanticBudget.llmBudgetOwner = owner;
-    semanticBudget.plannedLlmCalls.push(owner);
-    if (owner === "summary") summaryArbitration = "llm_budget_owner";
-    else handoffArbitration = "llm_budget_owner";
-  } else if (llmCandidates.length > 1) {
-    const roiByTarget: Record<PolicySemanticTarget, PolicyRoiEstimate> = {
-      summary: summaryRoi,
-      handoff: handoffRoi,
-    };
-    const priority: PolicySemanticTarget[] = ["handoff", "summary"];
-    const llmBudgetOwner = llmCandidates
-      .slice()
-      .sort((left, right) => {
-        const netDiff = roiByTarget[right].netTokens - roiByTarget[left].netTokens;
-        if (netDiff !== 0) return netDiff;
-        return priority.indexOf(left) - priority.indexOf(right);
-      })[0];
-    const downgradedTargets = llmCandidates.filter((target) => target !== llmBudgetOwner);
-    semanticBudget.llmBudgetOwner = llmBudgetOwner;
-    semanticBudget.plannedLlmCalls.push(llmBudgetOwner);
-    semanticBudget.heuristicFallbacks.push(...downgradedTargets);
-    if (llmBudgetOwner === "summary") summaryArbitration = "llm_budget_owner";
-    if (llmBudgetOwner === "handoff") handoffArbitration = "llm_budget_owner";
-    if (downgradedTargets.includes("summary")) {
-      summaryGenerationMode = "heuristic";
-      summaryArbitration = "llm_budget_downgrade";
-    }
-    if (downgradedTargets.includes("handoff")) {
-      handoffGenerationMode = "heuristic";
-      handoffArbitration = "llm_budget_downgrade";
-    }
-  }
-
   return {
     historyView,
     stableChars,
@@ -1382,8 +1149,6 @@ function analyzePolicyBeforeBuild(
     promptChars,
     reductionToolPayloadSegmentCount: reductionStats.segmentCount,
     reductionToolPayloadChars: reductionStats.chars,
-    summaryReasons,
-    handoffReasons,
     reductionReasons: uniqueStrings(reductionReasons),
     reductionBeforeCallPassIds: uniqueStrings(reductionBeforeCallPassIds),
     reductionAfterCallPassIds: uniqueStrings(reductionAfterCallPassIds),
@@ -1399,15 +1164,6 @@ function analyzePolicyBeforeBuild(
     },
     locality,
     roi,
-    summaryCooldownActive,
-    handoffCooldownActive,
-    requestSummary,
-    requestHandoff,
-    summaryGenerationMode,
-    handoffGenerationMode,
-    summaryArbitration,
-    handoffArbitration,
-    semanticBudget,
     cacheHealth: {
       supported: cacheHealthSupported,
       due: cacheHealthDue,
@@ -1431,17 +1187,6 @@ function buildPolicyMetadata(
     apiFamily,
     config: {
       locality: config.locality,
-      summary: {
-        generationMode: config.summaryGenerationMode,
-        maxOutputTokens: config.summaryMaxOutputTokens,
-        cooldownTurns: config.requestCooldownTurns,
-      },
-      handoff: {
-        enabled: config.handoffEnabled,
-        generationMode: config.handoffGenerationMode,
-        maxOutputTokens: config.handoffMaxOutputTokens,
-        cooldownTurns: config.handoffCooldownTurns,
-      },
       reduction: {
         enabled: config.reductionEnabled,
         toolPayloadMinChars: config.reductionToolPayloadMinChars,
@@ -1454,11 +1199,6 @@ function buildPolicyMetadata(
         enabled: config.evictionEnabled,
         policy: config.evictionPolicy,
         minBlockChars: config.evictionMinBlockChars,
-      },
-      turnLocal: {
-        enabled: false,
-        delayTurns: 0,
-        minChars: 0,
       },
       cache: {
         telemetryWindowTurns: config.cacheJitterWindowTurns,
@@ -1479,8 +1219,6 @@ function buildPolicyMetadata(
       stableChars: analysis.stableChars,
       cumulativeInputTokens: state.cumulativeInputTokens,
       recentCacheMissRate: analysis.recentCacheMissRate,
-      summaryCooldownActive: analysis.summaryCooldownActive,
-      handoffCooldownActive: analysis.handoffCooldownActive,
       recentMissCount: analysis.recentMissCount,
       cacheHealth: {
         mode: analysis.cacheHealth.mode,
@@ -1494,8 +1232,6 @@ function buildPolicyMetadata(
       promptChars: analysis.promptChars,
       reductionToolPayloadSegmentCount: analysis.reductionToolPayloadSegmentCount,
       reductionToolPayloadChars: analysis.reductionToolPayloadChars,
-      summaryReasons: analysis.summaryReasons,
-      handoffReasons: analysis.handoffReasons,
       reductionReasons: analysis.reductionReasons,
       evictionReasons: analysis.evictionReasons,
       locality: {
@@ -1508,12 +1244,8 @@ function buildPolicyMetadata(
         activeReplayChars: analysis.locality.activeReplayChars,
         protectedMessageIds: analysis.locality.protectedMessageIds,
         protectedChars: analysis.locality.protectedChars,
-        summaryCandidateMessageIds: analysis.locality.summaryCandidateMessageIds,
-        summaryCandidateChars: analysis.locality.summaryCandidateChars,
         reductionCandidateMessageIds: analysis.locality.reductionCandidateMessageIds,
         reductionCandidateChars: analysis.locality.reductionCandidateChars,
-        handoffCandidateMessageIds: analysis.locality.handoffCandidateMessageIds,
-        handoffCandidateChars: analysis.locality.handoffCandidateChars,
         errorCandidateMessageIds: analysis.locality.errorCandidateMessageIds,
       },
       cacheHealth: {
@@ -1525,24 +1257,6 @@ function buildPolicyMetadata(
     },
     roi: analysis.roi,
     decisions: {
-      summary: {
-        enabled: true,
-        purpose: "range_summary",
-        requested: analysis.requestSummary,
-        reasons: analysis.requestSummary ? [...analysis.summaryReasons] : [],
-        cooldownActive: analysis.summaryCooldownActive,
-        generationMode: analysis.summaryGenerationMode,
-        arbitration: analysis.summaryArbitration,
-      },
-      handoff: {
-        enabled: config.handoffEnabled,
-        purpose: "task_handoff",
-        requested: analysis.requestHandoff,
-        reasons: analysis.requestHandoff ? [...analysis.handoffReasons] : [],
-        cooldownActive: analysis.handoffCooldownActive,
-        generationMode: analysis.handoffGenerationMode,
-        arbitration: analysis.handoffArbitration,
-      },
       reduction: {
         enabled: config.reductionEnabled,
         beforeCallPassIds: analysis.reductionBeforeCallPassIds,
@@ -1563,9 +1277,7 @@ function buildPolicyMetadata(
         dominantAction: analysis.locality.dominantAction,
         signalCount: analysis.locality.signalCount,
         protectedMessageIds: analysis.locality.protectedMessageIds,
-        summaryCandidateMessageIds: analysis.locality.summaryCandidateMessageIds,
         reductionCandidateMessageIds: analysis.locality.reductionCandidateMessageIds,
-        handoffCandidateMessageIds: analysis.locality.handoffCandidateMessageIds,
         errorCandidateMessageIds: analysis.locality.errorCandidateMessageIds,
         signals: analysis.locality.signals,
       },
@@ -1581,7 +1293,6 @@ function buildPolicyMetadata(
         consecutiveMisses: state.cacheHealth.consecutiveMisses,
         hitFresh: analysis.cacheHealth.hitFresh,
       },
-      semantic: analysis.semanticBudget,
     },
   };
 }
@@ -2104,53 +1815,8 @@ export function createPolicyModule(cfg: PolicyModuleConfig = {}): RuntimeModule 
       }
 
 
-      if (policy.decisions.handoff.requested) {
-        state.lastHandoffRequestTurn = state.completedTurns;
-        nextCtx = appendContextEvent(nextCtx, {
-          type: RUNTIME_EVENT_TYPES.POLICY_HANDOFF_REQUESTED,
-          source: "module-policy",
-          at: new Date().toISOString(),
-          payload: {
-            reasons: policy.decisions.handoff.reasons,
-            cumulativeInputTokens: state.cumulativeInputTokens,
-            turn: state.completedTurns,
-            candidateMessageIds: policy.decisions.locality.handoffCandidateMessageIds,
-            candidateChars: policy.signals.locality.handoffCandidateChars,
-            roi: policy.roi.handoff,
-            purpose: policy.decisions.handoff.purpose,
-            generationMode: policy.decisions.handoff.generationMode,
-            arbitration: policy.decisions.handoff.arbitration,
-            semanticBudget: policy.decisions.semantic,
-            apiFamily,
-          },
-        });
-      }
-
-      if (!policy.decisions.summary.requested) {
-        stateBySession.set(ctx.sessionId, state);
-        return nextCtx;
-      }
-
-      state.lastSummaryRequestTurn = state.completedTurns;
       stateBySession.set(ctx.sessionId, state);
-      return appendContextEvent(nextCtx, {
-        type: RUNTIME_EVENT_TYPES.POLICY_SUMMARY_REQUESTED,
-        source: "module-policy",
-        at: new Date().toISOString(),
-        payload: {
-          cumulativeInputTokens: state.cumulativeInputTokens,
-          stableChars: analysis.stableChars,
-          reasons: policy.decisions.summary.reasons,
-          candidateMessageIds: policy.decisions.locality.summaryCandidateMessageIds,
-          candidateChars: policy.signals.locality.summaryCandidateChars,
-          roi: policy.roi.summary,
-          purpose: policy.decisions.summary.purpose,
-          generationMode: policy.decisions.summary.generationMode,
-          arbitration: policy.decisions.summary.arbitration,
-          semanticBudget: policy.decisions.semantic,
-          apiFamily,
-        },
-      });
+      return nextCtx;
     },
     async afterCall(ctx, result) {
       const metadata =

@@ -638,25 +638,6 @@
             }
           }
         }
-      },
-      "summary": {
-        "type": "object",
-        "additionalProperties": false,
-        "description": "Summary generation controls consumed by the policy layer.",
-        "properties": {
-          "summaryGenerationMode": {
-            "type": "string",
-            "enum": [
-              "llm_full_context",
-              "heuristic"
-            ],
-            "default": "heuristic"
-          },
-          "summaryMaxOutputTokens": {
-            "type": "number",
-            "description": "Max output tokens for summary sidecar generation."
-          }
-        }
       }
     }
   },
@@ -698,9 +679,6 @@
     },
     "contextEngine": {
       "label": "Context Engine"
-    },
-    "summary": {
-      "label": "Summary"
     },
     "taskStateEstimator": {
       "label": "Task State Estimator"

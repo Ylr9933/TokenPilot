@@ -122,7 +122,6 @@ if post_install:
         "contextEngine",
         "ux",
         "modules",
-        "summary",
         "eviction",
         "reduction",
         "taskStateEstimator",
@@ -183,14 +182,6 @@ if post_install:
         "policy": bool(modules.get("policy", True)),
         "reduction": bool(modules.get("reduction", True)),
         "eviction": bool(modules.get("eviction", False)),
-    }
-
-    summary_cfg = tokenpilot_cfg.get("summary")
-    if not isinstance(summary_cfg, dict):
-        summary_cfg = {}
-    tokenpilot_cfg["summary"] = {
-        "summaryGenerationMode": "llm_full_context" if str(summary_cfg.get("summaryGenerationMode")).strip() == "llm_full_context" else "heuristic",
-        "summaryMaxOutputTokens": max(128, min(8192, int(summary_cfg.get("summaryMaxOutputTokens") or 1200))),
     }
 
     eviction_cfg = tokenpilot_cfg.get("eviction")

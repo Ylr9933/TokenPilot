@@ -62,8 +62,6 @@ export type LocalitySignalScope = "session" | "branch" | "message";
 export type LocalityActionHint =
   | "protect"
   | "reduction"
-  | "summary"
-  | "handoff"
   | "observe";
 export type LocalitySignalConfidence = "low" | "medium" | "high";
 
@@ -142,16 +140,10 @@ export type PolicyLocalityAnalysis = {
   stablePrefixShare: number;
   signalCount: number;
   dominantAction: LocalityActionHint | "mixed" | "observe";
-  highLocalityMessageIds: string[];
-  lowLocalityMessageIds: string[];
   protectedMessageIds: string[];
   protectedChars: number;
-  summaryCandidateMessageIds: string[];
-  summaryCandidateChars: number;
   reductionCandidateMessageIds: string[];
   reductionCandidateChars: number;
-  handoffCandidateMessageIds: string[];
-  handoffCandidateChars: number;
   errorCandidateMessageIds: string[];
   signals: PolicyLocalitySignal[];
   notes: string[];
@@ -369,7 +361,7 @@ function findLastIndex<T>(items: T[], predicate: (value: T, index: number) => bo
 }
 
 function contentTypeProtectScore(message: ContextViewMessageSnapshot, isTailConversation: boolean): number {
-  if (message.kind === "summary" || message.kind === "checkpoint_seed" || message.kind === "handoff") {
+  if (message.kind === "summary" || message.kind === "checkpoint_seed") {
     return 0.95;
   }
   if (message.role === "system") {
@@ -434,7 +426,6 @@ function buildContentTypePriorSignals(messages: ContextViewMessageSnapshot[]): P
       message.role === "system" ||
       message.kind === "summary" ||
       message.kind === "checkpoint_seed" ||
-      message.kind === "handoff" ||
       tailConversationIds.has(message.messageId)
     ) {
       signals.push({
@@ -443,7 +434,7 @@ function buildContentTypePriorSignals(messages: ContextViewMessageSnapshot[]): P
         scope: "message",
         score: contentTypeProtectScore(message, tailConversationIds.has(message.messageId)),
         confidence:
-          message.kind === "summary" || message.kind === "checkpoint_seed" || message.kind === "handoff"
+          message.kind === "summary" || message.kind === "checkpoint_seed"
             ? "high"
             : "medium",
         actionHints: ["protect"],
@@ -518,7 +509,7 @@ function buildErrorSignals(messages: ContextViewMessageSnapshot[], cfg: PolicyLo
     const errorInfo = detectErrorInfo(message, structuralPayload);
     if (!errorInfo) continue;
     const toolLike = isLikelyToolLikeMessage(message, structuralPayload);
-    const actionHints: LocalityActionHint[] = toolLike ? ["summary", "reduction"] : ["summary"];
+    const actionHints: LocalityActionHint[] = toolLike ? ["reduction"] : [];
     signals.push({
       id: `error:${message.messageId}`,
       kind: "error_detected",
@@ -573,9 +564,7 @@ function buildHardLoopSignals(messages: ContextViewMessageSnapshot[], cfg: Polic
     const consistentError = uniqueStrings(bucket.map((entry) => entry.errorCode ?? "none")).length <= 1;
     const allToolLike = bucket.every((entry) => entry.toolLike);
     const toolName = bucket.find((entry) => entry.toolName)?.toolName;
-    const actionHints: LocalityActionHint[] = allToolLike
-      ? ["summary", "handoff", "reduction"]
-      : ["summary", "handoff"];
+    const actionHints: LocalityActionHint[] = allToolLike ? ["reduction"] : [];
     signals.push({
       id: `hard-loop:${signature.slice(0, 64)}`,
       kind: "hard_loop_detected",
@@ -646,7 +635,7 @@ function buildSubtaskBoundarySignals(
     const transition = hasTransitionMarker(current.content);
     const completion = between.some((message) => hasCompletionMarker(message.content) || message.role === "tool");
     const prefixMessageIds = prefix
-      .filter((message) => !["summary", "checkpoint_seed", "handoff"].includes(message.kind))
+      .filter((message) => !["summary", "checkpoint_seed"].includes(message.kind))
       .map((message) => message.messageId);
     const prefixChars = prefix.reduce((sum, message) => sum + message.chars, 0);
 
@@ -672,11 +661,6 @@ function buildSubtaskBoundarySignals(
   }
 
   if (!best) return [];
-  const actionHints: LocalityActionHint[] = ["summary"];
-  if (best.score >= 0.8) {
-    actionHints.push("handoff");
-  }
-
   return [
     {
       id: `subtask-boundary:${messages[best.index]?.messageId ?? best.index}`,
@@ -684,7 +668,7 @@ function buildSubtaskBoundarySignals(
       scope: "branch",
       score: Math.min(0.98, best.score),
       confidence: best.score >= 0.8 ? "high" : "medium",
-      actionHints,
+      actionHints: [],
       targets: {
         messageIds: best.prefixMessageIds,
         branchIds: activeBranchId ? [activeBranchId] : [],
@@ -730,17 +714,6 @@ function collectMessageTargets(
   );
 }
 
-function collectBranchTargets(
-  signals: PolicyLocalitySignal[],
-  hint: LocalityActionHint,
-): string[] {
-  return uniqueStrings(
-    signals
-      .filter((signal) => signal.actionHints.includes(hint))
-      .flatMap((signal) => signal.targets.branchIds ?? []),
-  );
-}
-
 export function analyzePolicyLocality(params: {
   ctx: RuntimeTurnContext;
   cfg: PolicyLocalityConfig;
@@ -762,16 +735,10 @@ export function analyzePolicyLocality(params: {
     stablePrefixShare,
     signalCount: 0,
     dominantAction: "observe",
-    highLocalityMessageIds: [],
-    lowLocalityMessageIds: [],
     protectedMessageIds: [],
     protectedChars: 0,
-    summaryCandidateMessageIds: [],
-    summaryCandidateChars: 0,
     reductionCandidateMessageIds: [],
     reductionCandidateChars: 0,
-    handoffCandidateMessageIds: [],
-    handoffCandidateChars: 0,
     errorCandidateMessageIds: [],
     signals: [],
     notes: cfg.enabled ? ["context_view_unavailable"] : ["locality_disabled"],
@@ -794,12 +761,6 @@ export function analyzePolicyLocality(params: {
   const reductionCandidateMessageIds = collectMessageTargets(signals, "reduction").filter(
     (messageId) => !protectedMessageIds.includes(messageId),
   );
-  const summaryCandidateMessageIds = collectMessageTargets(signals, "summary").filter(
-    (messageId) => !protectedMessageIds.includes(messageId),
-  );
-  const handoffCandidateMessageIds = collectMessageTargets(signals, "handoff").filter(
-    (messageId) => !protectedMessageIds.includes(messageId),
-  );
   const errorCandidateMessageIds = uniqueStrings(
     signals
       .filter((signal) => signal.kind === "error_detected")
@@ -807,9 +768,7 @@ export function analyzePolicyLocality(params: {
   );
 
   const protectedChars = sumMessageChars(protectedMessageIds, messagesById);
-  const summaryCandidateChars = sumMessageChars(summaryCandidateMessageIds, messagesById);
   const reductionCandidateChars = sumMessageChars(reductionCandidateMessageIds, messagesById);
-  const handoffCandidateChars = sumMessageChars(handoffCandidateMessageIds, messagesById);
   const activeReplayChars = messages.reduce((sum, message) => sum + message.chars, 0);
   const activeReplayTokens = messages.reduce((sum, message) => sum + message.approxTokens, 0);
 
@@ -829,20 +788,10 @@ export function analyzePolicyLocality(params: {
     stablePrefixShare,
     signalCount: signals.length,
     dominantAction: dominantAction(signals),
-    highLocalityMessageIds: protectedMessageIds,
-    lowLocalityMessageIds: uniqueStrings([
-      ...reductionCandidateMessageIds,
-      ...summaryCandidateMessageIds,
-      ...handoffCandidateMessageIds,
-    ]),
     protectedMessageIds,
     protectedChars,
-    summaryCandidateMessageIds,
-    summaryCandidateChars,
     reductionCandidateMessageIds,
     reductionCandidateChars,
-    handoffCandidateMessageIds,
-    handoffCandidateChars,
     errorCandidateMessageIds,
     signals,
     notes: [

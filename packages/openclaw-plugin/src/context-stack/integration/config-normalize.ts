@@ -54,7 +54,6 @@ function normalizeHostConfig(raw: PluginHostConfig): NormalizedPluginHostConfig 
 
 function normalizeMethodConfig(raw: TokenPilotMethodConfig): NormalizedTokenPilotMethodConfig {
   const modules = raw.modules ?? {};
-  const summary = raw.summary ?? {};
   const eviction = raw.eviction ?? {};
   const taskStateEstimator = raw.taskStateEstimator ?? {};
   const reduction = raw.reduction ?? {};
@@ -98,10 +97,6 @@ function normalizeMethodConfig(raw: TokenPilotMethodConfig): NormalizedTokenPilo
       policy: modules.policy ?? false,
       reduction: modules.reduction ?? false,
       eviction: modules.eviction ?? false,
-    },
-    summary: {
-      summaryGenerationMode: summary.summaryGenerationMode === "llm_full_context" ? "llm_full_context" : "heuristic",
-      summaryMaxOutputTokens: Math.max(128, Math.min(8192, summary.summaryMaxOutputTokens ?? 1200)),
     },
     eviction: {
       enabled: eviction.enabled ?? false,

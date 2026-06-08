@@ -32,10 +32,6 @@ export type TokenPilotMethodConfig = {
     reduction?: boolean;
     eviction?: boolean;
   };
-  summary?: {
-    summaryGenerationMode?: "llm_full_context" | "heuristic";
-    summaryMaxOutputTokens?: number;
-  };
   eviction?: {
     enabled?: boolean;
     policy?: "noop" | "lru" | "lfu" | "gdsf" | "model_scored";

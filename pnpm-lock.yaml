@@ -18,63 +18,46 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/lab-bench:
-    dependencies:
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../packages/kernel
-      '@tokenpilot/layer-context':
-        specifier: workspace:*
-        version: link:../../packages/layers/context
-      '@tokenpilot/layer-decision':
-        specifier: workspace:*
-        version: link:../../packages/layers/decision
-      '@tokenpilot/layer-execution':
-        specifier: workspace:*
-        version: link:../../packages/layers/execution
-      '@tokenpilot/layer-orchestration':
-        specifier: workspace:*
-        version: link:../../packages/layers/orchestration
-      '@tokenpilot/provider-openai':
-        specifier: workspace:*
-        version: link:../../packages/providers/openai
-
   packages/kernel: {}
-
-  packages/layers/context:
-    dependencies:
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
 
   packages/layers/decision:
     dependencies:
+      '@tokenpilot/history':
+        specifier: workspace:*
+        version: link:../history
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
-      '@tokenpilot/layer-context':
-        specifier: workspace:*
-        version: link:../context
 
-  packages/layers/execution:
+  packages/layers/history:
     dependencies:
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 
-  packages/layers/orchestration:
+  packages/layers/memory:
     dependencies:
-      '@tokenpilot/kernel':
+      '@tokenpilot/history':
         specifier: workspace:*
-        version: link:../../kernel
-      '@tokenpilot/layer-context':
-        specifier: workspace:*
-        version: link:../context
-      '@tokenpilot/storage-fs':
-        specifier: workspace:*
-        version: link:../../storage/fs
+        version: link:../history
 
   packages/openclaw-plugin:
+    dependencies:
+      '@tokenpilot/decision':
+        specifier: workspace:*
+        version: link:../layers/decision
+      '@tokenpilot/history':
+        specifier: workspace:*
+        version: link:../layers/history
+      '@tokenpilot/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+      '@tokenpilot/memory':
+        specifier: workspace:*
+        version: link:../layers/memory
+      '@tokenpilot/runtime-core':
+        specifier: workspace:*
+        version: link:../runtime-core
     devDependencies:
       esbuild:
         specifier: ^0.25.10
@@ -86,23 +69,11 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/providers/anthropic:
+  packages/runtime-core:
     dependencies:
       '@tokenpilot/kernel':
         specifier: workspace:*
-        version: link:../../kernel
-
-  packages/providers/openai:
-    dependencies:
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
-
-  packages/storage/fs:
-    dependencies:
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
+        version: link:../kernel
 
 packages:
 

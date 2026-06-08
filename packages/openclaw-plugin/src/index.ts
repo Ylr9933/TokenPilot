@@ -1,283 +1,73 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  resolveReductionPasses as resolveLayerReductionPasses,
-  runReductionBeforeCall as runLayerReductionBeforeCall,
   runReductionAfterCall as runLayerReductionAfterCall,
+  runReductionBeforeCall as runLayerReductionBeforeCall,
+  resolveReductionPasses as resolveLayerReductionPasses,
 } from "@tokenpilot/runtime-core";
-import { createPolicyModule } from "@tokenpilot/decision";
 import {
-  applyProxyReductionToInput,
-  applyLayeredReductionAfterCall,
-  applyLayeredReductionAfterCallToSse,
-  buildLayeredReductionContext,
-  estimatePayloadInputChars,
   extractInputText,
-  findDeveloperAndPrimaryUser,
-  isReductionPassEnabled,
-  isSseContentType,
-  loadOrderedTurnAnchors,
-  loadSegmentAnchorByCallId,
-  normalizeText,
   normalizeTurnBindingMessage,
-  prependTextToContent,
-  rewritePayloadForStablePrefix,
-  rewriteRootPromptForStablePrefix,
-  type ProxyAfterCallReductionResult,
-  type ProxyReductionResult,
-  type RootPromptRewrite,
-} from "./context-stack/request-preprocessing-api.js";
+} from "./context-stack/request-preprocessing/stable-prefix.js";
+import { applyProxyReductionToInput } from "./context-stack/request-preprocessing/before-call-reduction.js";
+import type { ProxyReductionResult } from "./context-stack/request-preprocessing/before-call-reduction.js";
+import type { ProxyAfterCallReductionResult } from "./context-stack/request-preprocessing/after-call-reduction.js";
+import type { RootPromptRewrite } from "./context-stack/request-preprocessing/root-prompt-stabilizer.js";
 import {
   extractTurnObservations,
-  inferObservationPayloadKind,
   readTranscriptEntriesForSession,
-  syncRawSemanticTurnsFromTranscript,
   transcriptMessageStableId,
-} from "./context-stack/page-out-api.js";
+  syncRawSemanticTurnsFromTranscript,
+} from "./context-stack/page-out/transcript-sync.js";
 import {
   MEMORY_FAULT_RECOVER_TOOL_NAME,
   archiveContent,
   buildRecoveryHint,
-  injectMemoryFaultProtocolInstructions,
   registerMemoryFaultRecoverTool,
-  stripInternalPayloadMarkers,
 } from "./context-stack/page-in-api.js";
 import {
   PluginRuntimeConfig,
   PluginLogger,
-  applyBeforeToolCallDefaults,
-  applyWorkspacePathHintToToolParams,
-  applyPolicyBeforeCall,
   asRecord,
-  buildPolicyModuleConfigFromPluginConfig,
+} from "./context-stack/integration/config-types.js";
+import type { UpstreamConfig, UpstreamHttpResponse } from "./context-stack/integration/upstream-types.js";
+import { normalizeConfig } from "./context-stack/integration/config-normalize.js";
+import { applyPolicyBeforeCall, buildPolicyModuleConfigFromPluginConfig } from "./context-stack/integration/policy-config-bridge.js";
+import { createPluginContextEngine } from "./context-stack/integration/context-engine.js";
+import { registerRuntime } from "./context-stack/integration/runtime-register.js";
+import { hookOn, makeLogger } from "./context-stack/integration/runtime-helpers.js";
+import {
   canonicalMessageTaskIds,
-  contentToText,
-  detectUpstreamConfig,
   dedupeStrings,
   ensureContextSafeDetails,
-  extractPathLike,
+  extractToolMessageText,
+  extractWorkspaceDirFromMessages,
+  isToolResultLikeMessage,
+  messageToolCallId,
+  applyBeforeToolCallDefaults,
+  applyWorkspacePathHintToToolParams,
+} from "./context-stack/integration/runtime-tooling.js";
+import {
+  contentToText,
   extractItemText,
   extractLastUserMessage,
   extractOpenClawSessionId,
   extractProviderResponseText,
   extractSessionKey,
-  extractWorkspaceDirFromMessages,
-  extractToolMessageText,
   findLastUserItem,
-  hookOn,
-  installLlmHookTap,
-  isToolResultLikeMessage,
-  makeLogger,
-  messageToolCallId,
-  maybeRegisterProxyProvider,
-  normalizeConfig,
-  ensureExplicitProxyModelsInConfig,
-  countTokensWithFallback,
-  recordUxEffect,
-  responsesPayloadToChatCompletions,
-  chatCompletionsToResponsesText,
-  requestUpstreamResponses,
-  requestUpstreamResponsesStream,
-  createPluginContextEngine,
-  normalizeProxyModelId,
-  registerRuntime,
-  type UpstreamConfig,
-  type UpstreamHttpResponse,
-  safeId,
-} from "./context-stack/integration.js";
+} from "./context-stack/integration/runtime-event-text.js";
+import { maybeRegisterProxyProvider } from "./context-stack/integration/proxy-provider.js";
+import { ensureExplicitProxyModelsInConfig } from "./context-stack/integration/upstream-config.js";
+import { installLlmHookTap } from "./context-stack/integration/trace-hooks.js";
+import { extractPathLike, safeId } from "./context-stack/integration/config-types.js";
 import {
   maybeBlockRepeatedToolCall,
   recordToolCallMemo,
 } from "./context-stack/integration/tool-call-memo.js";
-import {
-  appendJsonl,
-  appendForwardedInputDump,
-  appendReductionPassTrace,
-  appendTaskStateTrace,
-} from "./trace/io.js";
-import { applyToolResultPersistPolicy } from "./context-stack/request-preprocessing/tool-results-persist-policy.js";
-import { contextSafeRecovery as importedContextSafeRecovery, hasRecoveryMarker as importedHasRecoveryMarker } from "./context-stack/page-in-api.js";
+import { appendTaskStateTrace } from "./trace/io.js";
 import { registerTokenPilotCommand } from "./commands/tokenpilot-command.js";
-
-const TEST_WORKSPACE_DIR = "/tmp/tokenpilot-openclaw-plugin-tests";
-
-const proxyRuntimeHelpers = {
-  detectUpstreamConfig,
-  createPolicyModule,
-  buildPolicyModuleConfigFromPluginConfig,
-  normalizeProxyModelId,
-  injectMemoryFaultProtocolInstructions,
-  normalizeText,
-  findDeveloperAndPrimaryUser,
-  rewriteRootPromptForStablePrefix,
-  prependTextToContent,
-  rewritePayloadForStablePrefix,
-  estimatePayloadInputChars,
-  appendTaskStateTrace,
-  applyProxyReductionToInput,
-  applyPolicyBeforeCall,
-  buildLayeredReductionContext,
-  isReductionPassEnabled,
-  loadOrderedTurnAnchors,
-  loadSegmentAnchorByCallId,
-  dedupeStrings,
-  syncRawSemanticTurnsFromTranscript,
-  contentToText,
-  extractProviderResponseText,
-  contextSafeRecovery,
-  MEMORY_FAULT_RECOVER_TOOL_NAME,
-  hasRecoveryMarker,
-  inferObservationPayloadKind,
-  makeLogger,
-  stripInternalPayloadMarkers,
-  extractInputText,
-  appendReductionPassTrace,
-  appendJsonl,
-  appendForwardedInputDump,
-  requestUpstreamResponses,
-  requestUpstreamResponsesStream,
-  applyLayeredReductionAfterCall,
-  applyLayeredReductionAfterCallToSse,
-  isSseContentType,
-  countTokensWithFallback,
-  recordUxEffect,
-};
-
-const defaultBeforeCallTestHelpers = {
-  applyPolicyBeforeCall,
-  buildLayeredReductionContext: (
-    payload: any,
-    triggerMinChars: number,
-    sessionId: string,
-    passToggles: any,
-    passOptions: any,
-    segmentAnchorByCallId: any,
-    orderedTurnAnchors: any,
-  ) => withTestWorkspaceDir(
-    buildLayeredReductionContext(
-      payload,
-      triggerMinChars,
-      sessionId,
-      {
-        memoryFaultRecoverToolName: MEMORY_FAULT_RECOVER_TOOL_NAME,
-        hasRecoveryMarker,
-        inferObservationPayloadKind,
-      },
-      passToggles,
-      passOptions,
-      segmentAnchorByCallId,
-      orderedTurnAnchors,
-    ),
-  ),
-  isReductionPassEnabled,
-  loadOrderedTurnAnchors: (stateDir: string, sessionId: string) =>
-    loadOrderedTurnAnchors(stateDir, sessionId, dedupeStrings),
-  loadSegmentAnchorByCallId: (stateDir: string, sessionId: string) =>
-    loadSegmentAnchorByCallId(stateDir, sessionId, {
-      dedupeStrings,
-      syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
-        await syncRawSemanticTurnsFromTranscript(dir, sid, {
-          contentToText,
-          contextSafeRecovery,
-          memoryFaultRecoverToolName: MEMORY_FAULT_RECOVER_TOOL_NAME,
-        });
-      },
-    }),
-  makeLogger: () => makeLogger(),
-};
-
-function withTestReductionConfig(
-  options?: {
-    sessionId?: string;
-    engine?: "layered";
-    logger?: any;
-    triggerMinChars?: number;
-    maxToolChars?: number;
-    passToggles?: Record<string, unknown>;
-    passOptions?: Record<string, Record<string, unknown>>;
-    beforeCallModules?: {
-      policy?: any;
-      eviction?: any;
-    };
-    cfg?: any;
-  },
-): {
-  sessionId?: string;
-  engine?: "layered";
-  logger?: any;
-  triggerMinChars?: number;
-  maxToolChars?: number;
-  passToggles?: Record<string, unknown>;
-  passOptions?: Record<string, Record<string, unknown>>;
-  beforeCallModules?: {
-    policy?: any;
-    eviction?: any;
-  };
-  cfg?: any;
-} | undefined {
-  if (!options) {
-    return { cfg: { stateDir: TEST_WORKSPACE_DIR } };
-  }
-  return {
-    ...options,
-    cfg: {
-      ...(options.cfg ?? {}),
-      stateDir: options.cfg?.stateDir ?? TEST_WORKSPACE_DIR,
-    },
-  };
-}
-
-function withTestWorkspaceDir(result: ReturnType<typeof buildLayeredReductionContext>): ReturnType<typeof buildLayeredReductionContext> {
-  return {
-    ...result,
-    turnCtx: {
-      ...result.turnCtx,
-      metadata: {
-        ...(result.turnCtx.metadata ?? {}),
-        workspaceDir:
-          typeof result.turnCtx.metadata?.workspaceDir === "string"
-            ? result.turnCtx.metadata.workspaceDir
-            : TEST_WORKSPACE_DIR,
-      },
-    },
-  };
-}
-
-function contextSafeRecovery(details: unknown): Record<string, unknown> | undefined {
-  return importedContextSafeRecovery(details, asRecord);
-}
-
-function hasRecoveryMarker(details: unknown): boolean {
-  return importedHasRecoveryMarker(details, asRecord);
-}
-
-const __testHooks = {
-  rewritePayloadForStablePrefix,
-  applyProxyReductionToInput: (
-    payload: any,
-    options?: {
-      sessionId?: string;
-      engine?: "layered";
-      logger?: any;
-      triggerMinChars?: number;
-      maxToolChars?: number;
-      passToggles?: Record<string, unknown>;
-      passOptions?: Record<string, Record<string, unknown>>;
-      beforeCallModules?: {
-        policy?: any;
-        eviction?: any;
-      };
-      cfg?: any;
-    },
-  ) => applyProxyReductionToInput(
-    payload,
-    withTestReductionConfig(options),
-    defaultBeforeCallTestHelpers,
-  ),
-  stripInternalPayloadMarkers,
-  normalizeConfig,
-  responsesPayloadToChatCompletions,
-  chatCompletionsToResponsesText,
-};
+import { registerLayeredContextEngine, registerToolCallHooks, registerToolResultPersistHook } from "./plugin-register-hooks.js";
+import { __testHooks, contextSafeRecovery, proxyRuntimeHelpers } from "./plugin-test-support.js";
+import { createWorkspaceHintStore } from "./plugin-workspace-hints.js";
 
 module.exports = {
   id: "tokenpilot",
@@ -287,31 +77,10 @@ module.exports = {
   register(api: any) {
     const logger = makeLogger(api?.logger);
     const cfg = normalizeConfig(api?.pluginConfig);
-    const workspaceDirBySessionKey = new Map<string, string>();
-    const workspaceDirBySessionId = new Map<string, string>();
-
-    const rememberWorkspaceHint = (
-      sessionKey: string | undefined,
-      sessionId: string | undefined,
-      workspaceDir: string | undefined,
-    ) => {
-      const normalizedWorkspaceDir = typeof workspaceDir === "string" ? workspaceDir.trim() : "";
-      if (!normalizedWorkspaceDir) return;
-      const normalizedSessionKey = typeof sessionKey === "string" ? sessionKey.trim() : "";
-      const normalizedSessionId = typeof sessionId === "string" ? sessionId.trim() : "";
-      if (normalizedSessionKey) workspaceDirBySessionKey.set(normalizedSessionKey, normalizedWorkspaceDir);
-      if (normalizedSessionId) workspaceDirBySessionId.set(normalizedSessionId, normalizedWorkspaceDir);
-    };
-
-    const resolveWorkspaceHintForEvent = (event: any): string | undefined => {
-      const sessionKey = extractSessionKey(event);
-      const sessionId = extractOpenClawSessionId(event);
-      return (
-        (sessionKey ? workspaceDirBySessionKey.get(sessionKey) : undefined)
-        ?? (sessionId ? workspaceDirBySessionId.get(sessionId) : undefined)
-        ?? undefined
-      );
-    };
+    const { rememberWorkspaceHint, resolveWorkspaceHintForEvent } = createWorkspaceHintStore(
+      extractSessionKey,
+      extractOpenClawSessionId,
+    );
 
     registerTokenPilotCommand(api, logger);
 
@@ -320,64 +89,52 @@ module.exports = {
       return;
     }
 
-    if (cfg.hooks.beforeToolCall) {
-      hookOn(api, "before_tool_call", async (event: any) => {
-        const blockReason = await maybeBlockRepeatedToolCall(event, cfg, {
-          appendTaskStateTrace,
-        });
-        if (blockReason) {
-          return { block: true, blockReason };
-        }
-        const withDefaults = applyBeforeToolCallDefaults(event);
-        const withWorkspaceHint = applyWorkspacePathHintToToolParams(
-          { ...event, params: withDefaults },
-          resolveWorkspaceHintForEvent(event),
-        );
-        return { params: withWorkspaceHint ?? withDefaults };
-      });
+    registerToolCallHooks({
+      api,
+      cfg,
+      hookOn,
+      appendTaskStateTrace,
+      maybeBlockRepeatedToolCall,
+      applyBeforeToolCallDefaults,
+      applyWorkspacePathHintToToolParams,
+      resolveWorkspaceHintForEvent,
+      recordToolCallMemo,
+      safeId,
+      logger,
+    });
 
-      hookOn(api, "after_tool_call", (event: any) => {
-        void recordToolCallMemo(event, cfg, {
-          safeId,
-          appendTaskStateTrace,
-          logger,
-        });
-      });
-    }
+    registerToolResultPersistHook({
+      api,
+      cfg,
+      hookOn,
+      logger,
+      appendTaskStateTrace,
+      ensureContextSafeDetails,
+      extractOpenClawSessionId,
+      extractToolMessageText,
+      isToolResultLikeMessage,
+      safeId,
+    });
 
-    if (cfg.hooks.toolResultPersist) {
-      hookOn(api, "tool_result_persist", (event: any) => {
-        const out = applyToolResultPersistPolicy(event, cfg, logger, {
-          appendTaskStateTrace,
-          ensureContextSafeDetails,
-          extractOpenClawSessionId,
-          extractToolMessageText,
-          isToolResultLikeMessage,
-          safeId,
-        });
-        return out ?? { message: event?.message };
-      });
-    }
-
-    if (cfg.contextEngine.enabled && typeof api.registerContextEngine === "function") {
-      api.registerContextEngine("layered-context", () => createPluginContextEngine(cfg, logger, {
-        appendTaskStateTrace,
-        readTranscriptEntriesForSession,
-        transcriptMessageStableId,
-        asRecord,
-        canonicalMessageTaskIds,
-        contentToText,
-        dedupeStrings,
-        ensureContextSafeDetails,
-        extractPathLike,
-        extractToolMessageText,
-        isToolResultLikeMessage,
-        messageToolCallId,
-        safeId,
-      }));
-    } else if (cfg.contextEngine.enabled) {
-      logger.warn("[plugin-runtime] registerContextEngine unavailable in this OpenClaw version.");
-    }
+    registerLayeredContextEngine({
+      api,
+      cfg,
+      logger,
+      createPluginContextEngine,
+      appendTaskStateTrace,
+      readTranscriptEntriesForSession,
+      transcriptMessageStableId,
+      asRecord,
+      canonicalMessageTaskIds,
+      contentToText,
+      dedupeStrings,
+      ensureContextSafeDetails,
+      extractPathLike,
+      extractToolMessageText,
+      isToolResultLikeMessage,
+      messageToolCallId,
+      safeId,
+    });
 
     void registerRuntime(api, cfg, logger, {
       debugEnabled: cfg.logLevel === "debug",

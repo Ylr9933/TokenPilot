@@ -60,7 +60,7 @@ export async function requestUpstreamWithCurl(
   payload: any,
   stateDir: string,
 ): Promise<UpstreamHttpResponse> {
-  const realTempDir = await mkdtemp(join(tmpdir(), "ecoclaw-curl-"));
+  const realTempDir = await mkdtemp(join(tmpdir(), "tokenpilot-curl-"));
   const bodyPath = join(realTempDir, "request.json");
   const headersPath = join(realTempDir, "headers.txt");
   const curlEnv = buildUpstreamCurlEnv();

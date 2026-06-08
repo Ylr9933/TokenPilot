@@ -64,7 +64,7 @@ export async function detectUpstreamConfig(
       : matchedProviderByBaseUrl
         ? matchedProviderByBaseUrl
         : preferred.find((id) => providers?.[id]?.baseUrl && providers?.[id]?.apiKey)
-          ?? Object.keys(providers).find((id) => id !== "tokenpilot" && id !== "ecoclaw" && providers[id]?.baseUrl && providers[id]?.apiKey)
+          ?? Object.keys(providers).find((id) => id !== "tokenpilot" && providers[id]?.baseUrl && providers[id]?.apiKey)
           ?? Object.keys(providers)[0];
     if (!selectedProvider) return null;
     const provider = providers[selectedProvider];
@@ -138,8 +138,6 @@ export function normalizeProxyModelId(model: string): string {
   if (!value) return value;
   const stripped = value.startsWith("tokenpilot/")
     ? value.slice("tokenpilot/".length)
-    : value.startsWith("ecoclaw/")
-      ? value.slice("ecoclaw/".length)
-      : value;
+    : value;
   return stripped.replace("gpt-5-4-mini", "gpt-5.4-mini");
 }

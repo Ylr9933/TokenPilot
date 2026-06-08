@@ -210,7 +210,7 @@ def _default_service_code_root() -> Path:
 def _resolve_model_id(requested_model: str | None, config_path: Path, *, purpose: str) -> str:
     model = (requested_model or "").strip()
     if not model:
-        model = "ecoclaw/gpt-5.4-mini" if purpose == "execution" else "tokenpilot/gpt-5.4-mini"
+        model = "tokenpilot/gpt-5.4-mini" if purpose == "execution" else "tokenpilot/gpt-5.4-mini"
     return model
 
 

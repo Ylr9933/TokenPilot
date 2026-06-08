@@ -253,7 +253,7 @@ if [[ -n "${RESULT_JSON}" ]]; then
   COST_REPORT_FILE="${REPORT_DIR}/method_${RUN_TAG}_cost.json"
   REDUCTION_TRACE_FILE="${PLUGIN_STATE_DIR}/tokenpilot/reduction-pass-trace.jsonl"
   if [[ ! -f "${REDUCTION_TRACE_FILE}" ]]; then
-    REDUCTION_TRACE_FILE="${PLUGIN_STATE_DIR}/ecoclaw/reduction-pass-trace.jsonl"
+    REDUCTION_TRACE_FILE="${PLUGIN_STATE_DIR}/tokenpilot/reduction-pass-trace.jsonl"
   fi
   REDUCTION_REPORT_FILE="${REPORT_DIR}/method_${RUN_TAG}_reduction_passes.json"
   generate_cost_report_and_print_summary "${RESULT_JSON}" "${COST_REPORT_FILE}"

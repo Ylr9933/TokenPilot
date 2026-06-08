@@ -8,7 +8,7 @@ import {
   estimateMessagesChars,
   loadCanonicalState,
   saveCanonicalState,
-  type EcoCanonicalState,
+  type CanonicalTranscriptState,
 } from "./canonical-state.js";
 import { loadSessionTaskRegistry } from "./registry.js";
 
@@ -18,7 +18,7 @@ export {
   estimateMessagesChars,
   loadCanonicalState,
   saveCanonicalState,
-  type EcoCanonicalState,
+  type CanonicalTranscriptState,
 };
 
 type SyncHelpers<TEntry> = {
@@ -32,12 +32,12 @@ export async function syncCanonicalStateFromTranscript<TEntry>(params: {
   sessionId: string;
   getMessage: (entry: TEntry) => any;
   helpers: SyncHelpers<TEntry>;
-}): Promise<{ state: EcoCanonicalState; changed: boolean }> {
+}): Promise<{ state: CanonicalTranscriptState; changed: boolean }> {
   const loaded = await loadCanonicalState(params.stateDir, params.sessionId);
   const transcriptEntries = await params.helpers.readTranscriptEntriesForSession(params.sessionId);
   if (!transcriptEntries) {
     if (loaded) return { state: loaded, changed: false };
-    const emptyState: EcoCanonicalState = {
+    const emptyState: CanonicalTranscriptState = {
       version: 1,
       sessionId: params.sessionId,
       messages: [],
@@ -122,7 +122,7 @@ export type CanonicalEvictionAdapter = (params: {
 export type RewriteCanonicalStateParams = {
   stateDir: string;
   sessionId: string;
-  state: EcoCanonicalState;
+  state: CanonicalTranscriptState;
   evictionEnabled?: boolean;
   evictionPolicy?: string;
   evictionMinBlockChars?: number;
@@ -132,7 +132,7 @@ export type RewriteCanonicalStateParams = {
 };
 
 export async function rewriteCanonicalState(params: RewriteCanonicalStateParams): Promise<{
-  state: EcoCanonicalState;
+  state: CanonicalTranscriptState;
   changed: boolean;
   appliedEvictionTaskIds: string[];
 }> {

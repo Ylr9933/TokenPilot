@@ -151,7 +151,6 @@ def prepare_tmp_openclaw_home(source_home: Path, label: str) -> tuple[Path, Path
 
     for child in (
         "tokenpilot-plugin-state",
-        "ecoclaw-plugin-state",
         "logs",
         "completions",
         "canvas",

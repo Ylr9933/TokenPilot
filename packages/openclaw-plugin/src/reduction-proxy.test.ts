@@ -89,17 +89,17 @@ test("applyProxyReductionToInput reduces responses-style function call fields", 
 
 test("stripInternalPayloadMarkers removes internal flags before forwarding upstream", () => {
   const payload: any = {
-    __ecoclaw_reduction_applied: true,
+    __tokenpilot_reduction_applied: true,
     input: [
-      { role: "user", __ecoclaw_replay_raw: true, content: "hello" },
+      { role: "user", __tokenpilot_replay_raw: true, content: "hello" },
       { role: "assistant", content: "world" },
     ],
   };
 
   hooks.stripInternalPayloadMarkers(payload);
 
-  assert.equal("__ecoclaw_reduction_applied" in payload, false);
-  assert.equal("__ecoclaw_replay_raw" in payload.input[0], false);
+  assert.equal("__tokenpilot_reduction_applied" in payload, false);
+  assert.equal("__tokenpilot_replay_raw" in payload.input[0], false);
   assert.equal(payload.input[0].content, "hello");
   assert.equal(payload.input[1].content, "world");
 });

@@ -153,4 +153,4 @@ Before moving runnable PinchBench harness code, revalidate:
 2. isolated method smoke still passes
 3. `task_22` explicit `new_session` still grades correctly
 4. judge setup still avoids global runtime config mutation
-5. the migrated paths no longer assume a sibling `EcoClaw-Bench` checkout
+5. the migrated paths no longer assume a sibling `TokenPilot-Bench` checkout

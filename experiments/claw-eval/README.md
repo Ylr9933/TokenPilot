@@ -61,7 +61,7 @@ bash experiments/claw-eval/scripts/run_baseline.sh \
   --scope suite \
   --suite T001zh_email_triage \
   --session-mode isolated \
-  --model ecoclaw/gpt-5.4-mini
+  --model tokenpilot/gpt-5.4-mini
 ```
 
 Run all `general` tasks in isolated baseline mode:
@@ -71,7 +71,7 @@ cd /path/to/TokenPilot
 bash experiments/claw-eval/scripts/run_baseline.sh \
   --scope general \
   --session-mode isolated \
-  --model ecoclaw/gpt-5.4-mini
+  --model tokenpilot/gpt-5.4-mini
 ```
 
 ### Method

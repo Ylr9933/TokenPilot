@@ -1,6 +1,6 @@
 import type { RuntimeTurnContext, RuntimeTurnResult } from "./types.js";
 
-export const RUNTIME_EVENTS_METADATA_KEY = "ecoclawEvents";
+export const RUNTIME_EVENTS_METADATA_KEY = "tokenpilotEvents";
 
 export const RUNTIME_EVENT_TYPES = {
   // Stabilizer

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 DEFAULT_OPENCLAW_HOME="${HOME}"
-OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${ECOCLAW_OPENCLAW_HOME:-${DEFAULT_OPENCLAW_HOME}}}"
+OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${DEFAULT_OPENCLAW_HOME}}"
 export HOME="${OPENCLAW_HOME}"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_CONFIG_HOME="${HOME}/.config"
@@ -15,7 +15,6 @@ OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
 OPENCLAW_GATEWAY_PORT="${OPENCLAW_GATEWAY_PORT:-}"
 DEV_PLUGIN_PATH="${PLUGIN_DIR}"
 INSTALLED_PLUGIN_PATH="${HOME}/.openclaw/extensions/tokenpilot"
-LEGACY_INSTALLED_PLUGIN_PATH="${HOME}/.openclaw/extensions/ecoclaw"
 
 openclaw_cmd() {
   local -a cmd=("openclaw")
@@ -41,9 +40,9 @@ sanitize_plugin_config() {
 
   if command -v jq >/dev/null 2>&1; then
   tmp_file="$(mktemp)"
-    jq --arg dev_path "${DEV_PLUGIN_PATH}" --arg installed_path "${INSTALLED_PLUGIN_PATH}" --arg legacy_installed_path "${LEGACY_INSTALLED_PLUGIN_PATH}" '
+    jq --arg dev_path "${DEV_PLUGIN_PATH}" --arg installed_path "${INSTALLED_PLUGIN_PATH}" '
     if .plugins.load.paths? then
-      (.plugins.load.paths |= map(select(. != $dev_path and . != $installed_path and . != $legacy_installed_path))) |
+      (.plugins.load.paths |= map(select(. != $dev_path and . != $installed_path))) |
       if ((.plugins.load.paths // []) | length) == 0 then
         del(.plugins.load)
       else
@@ -91,13 +90,12 @@ if isinstance(load_cfg, dict):
 
 allow = plugins.get("allow")
 if isinstance(allow, list):
-    next_allow = [item for item in allow if item != "ecoclaw"]
+    next_allow = [item for item in allow if item != "tokenpilot"]
     if post_install and "tokenpilot" not in next_allow:
         next_allow.append("tokenpilot")
     plugins["allow"] = next_allow
 
 entries = plugins.setdefault("entries", {})
-entries.pop("ecoclaw", None)
 tokenpilot = entries.get("tokenpilot")
 if not post_install:
     tokenpilot = entries.get("tokenpilot")
@@ -260,7 +258,7 @@ with open(config_path, "r", encoding="utf-8") as f:
 plugins = cfg.setdefault("plugins", {})
 allow = plugins.get("allow")
 if isinstance(allow, list):
-    allow = [item for item in allow if item not in ("tokenpilot", "ecoclaw")]
+    allow = [item for item in allow if item != "tokenpilot"]
     if allow:
         plugins["allow"] = allow
     else:
@@ -268,7 +266,7 @@ if isinstance(allow, list):
 
 entries = plugins.get("entries")
 if isinstance(entries, dict):
-    entries.pop("ecoclaw", None)
+    entries.pop("tokenpilot", None)
     if not entries:
         plugins.pop("entries", None)
 
@@ -299,7 +297,7 @@ sanitize_plugin_config 0
 
 archive_path="$("${SCRIPT_DIR}/pack_release.sh")"
 prepare_config_for_install
-rm -rf "${INSTALLED_PLUGIN_PATH}" "${LEGACY_INSTALLED_PLUGIN_PATH}"
+rm -rf "${INSTALLED_PLUGIN_PATH}"
 
 mkdir -p "${INSTALLED_PLUGIN_PATH}"
 tmp_extract_dir="$(mktemp -d)"

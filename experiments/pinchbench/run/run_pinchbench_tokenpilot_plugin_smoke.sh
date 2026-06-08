@@ -150,7 +150,7 @@ dump_tokenpilot_config_snapshot "after-copy" "${OPENCLAW_CFG}"
 
 rm -rf "${OPENCLAW_STATE_DIR}/agents"
 mkdir -p "${OPENCLAW_STATE_DIR}/agents"
-rm -rf "${OPENCLAW_STATE_DIR}/extensions/tokenpilot" "${OPENCLAW_STATE_DIR}/extensions/ecoclaw"
+rm -rf "${OPENCLAW_STATE_DIR}/extensions/tokenpilot"
 
 python3 - "${OPENCLAW_CFG}" "${METHOD_MODEL}" <<'PY'
 import json
@@ -178,14 +178,12 @@ plugins["allow"] = ["tokenpilot"]
 entries = plugins.get("entries")
 if isinstance(entries, dict):
     entries.pop("tokenpilot", None)
-    entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
     if not installs:
         plugins.pop("installs", None)
 
@@ -198,7 +196,7 @@ if isinstance(load_cfg, dict):
             if not isinstance(item, str):
                 continue
             lowered = item.lower()
-            if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+            if "/extensions/tokenpilot" in lowered:
                 continue
             filtered.append(item)
         if filtered:

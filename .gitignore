@@ -23,7 +23,7 @@ packages/layers/execution/.tmp/
 packages/layers/execution/fixtures/reduction/
 
 # Test fixtures and temporary directories
-packages/layers/execution/.ecoclaw/
+packages/layers/execution/.tokenpilot/
 packages/layers/execution/fixtures/
 packages/layers/execution/scripts/
 

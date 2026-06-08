@@ -198,7 +198,7 @@ export function rewritePayloadForStablePrefix(
       if (!item || typeof item !== "object") return item;
       const role = String(item.role ?? "");
       if (role !== "user" && role !== "system") return item;
-      if (item.__ecoclaw_replay_raw === true) return item;
+      if (item.__tokenpilot_replay_raw === true) return item;
 
       if (role === "system") {
         const contentText =

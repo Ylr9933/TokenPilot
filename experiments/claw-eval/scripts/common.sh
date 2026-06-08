@@ -10,15 +10,15 @@ CLAW_EVAL_SOURCE_DIR="${CLAW_EVAL_ROOT}/vendor"
 CLAW_EVAL_PLUGIN_ROOT="${CLAW_EVAL_ROOT}/plugins"
 if [[ -n "${CLAW_EVAL_UV_PROJECT_DIR:-}" ]]; then
   CLAW_EVAL_UV_PROJECT_DIR="${CLAW_EVAL_UV_PROJECT_DIR}"
-elif [[ -f "/mnt/20t/xubuqiang/EcoClaw/claw-eval/pyproject.toml" ]]; then
-  CLAW_EVAL_UV_PROJECT_DIR="/mnt/20t/xubuqiang/EcoClaw/claw-eval"
+elif [[ -f "${CLAW_EVAL_SOURCE_DIR}/pyproject.toml" ]]; then
+  CLAW_EVAL_UV_PROJECT_DIR="${CLAW_EVAL_SOURCE_DIR}"
 else
   CLAW_EVAL_UV_PROJECT_DIR="${CLAW_EVAL_SOURCE_DIR}"
 fi
 
 # Reuse the pinchbench runtime/env/config stack and keep claw-eval-specific
 # naming as a compatibility shim for older run scripts.
-# shellcheck source=/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/pinchbench/scripts/common.sh
+# shellcheck source=../pinchbench/scripts/common.sh
 source "${PROJECT_ROOT}/experiments/pinchbench/scripts/common.sh"
 
 ce_import_dotenv() {
@@ -114,14 +114,13 @@ ce_prepare_tmp_openclaw_home() {
   rm -rf \
     "${tmp_state}/agents" \
     "${tmp_state}/tokenpilot-plugin-state" \
-    "${tmp_state}/ecoclaw-plugin-state" \
     "${tmp_state}/logs" \
     "${tmp_state}/completions" \
     "${tmp_state}/canvas" \
     "${tmp_state}/cron" \
     "${tmp_state}/workspace" \
     "${tmp_state}/extensions/tokenpilot" \
-    "${tmp_state}/extensions/ecoclaw" 2>/dev/null || true
+    2>/dev/null || true
   mkdir -p "${tmp_state}/agents"
 
   export TOKENPILOT_OPENCLAW_HOME="${tmp_home}"
@@ -198,14 +197,12 @@ else:
 entries = plugins.get("entries")
 if isinstance(entries, dict):
     entries.pop("tokenpilot", None)
-    entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
     if not installs:
         plugins.pop("installs", None)
 
@@ -218,7 +215,7 @@ if isinstance(load_cfg, dict):
             if not isinstance(item, str):
                 continue
             lowered = item.lower()
-            if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+            if "/extensions/tokenpilot" in lowered:
                 continue
             filtered.append(item)
         if filtered:

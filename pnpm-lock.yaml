@@ -20,22 +20,22 @@ importers:
 
   apps/lab-bench:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
-      '@ecoclaw/layer-context':
+      '@tokenpilot/layer-context':
         specifier: workspace:*
         version: link:../../packages/layers/context
-      '@ecoclaw/layer-decision':
+      '@tokenpilot/layer-decision':
         specifier: workspace:*
         version: link:../../packages/layers/decision
-      '@ecoclaw/layer-execution':
+      '@tokenpilot/layer-execution':
         specifier: workspace:*
         version: link:../../packages/layers/execution
-      '@ecoclaw/layer-orchestration':
+      '@tokenpilot/layer-orchestration':
         specifier: workspace:*
         version: link:../../packages/layers/orchestration
-      '@ecoclaw/provider-openai':
+      '@tokenpilot/provider-openai':
         specifier: workspace:*
         version: link:../../packages/providers/openai
 
@@ -43,34 +43,34 @@ importers:
 
   packages/layers/context:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 
   packages/layers/decision:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
-      '@ecoclaw/layer-context':
+      '@tokenpilot/layer-context':
         specifier: workspace:*
         version: link:../context
 
   packages/layers/execution:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 
   packages/layers/orchestration:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
-      '@ecoclaw/layer-context':
+      '@tokenpilot/layer-context':
         specifier: workspace:*
         version: link:../context
-      '@ecoclaw/storage-fs':
+      '@tokenpilot/storage-fs':
         specifier: workspace:*
         version: link:../../storage/fs
 
@@ -88,19 +88,19 @@ importers:
 
   packages/providers/anthropic:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 
   packages/providers/openai:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 
   packages/storage/fs:
     dependencies:
-      '@ecoclaw/kernel':
+      '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
 

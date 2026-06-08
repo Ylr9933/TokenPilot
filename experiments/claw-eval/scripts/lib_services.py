@@ -324,7 +324,6 @@ def _sanitize_claw_eval_runtime_state(raw: Dict[str, object], plugin_root: Path)
         if isinstance(paths, list):
             plugin_root_str = str(plugin_root.resolve())
             legacy_roots = {
-                "/mnt/20t/xubuqiang/EcoClaw/代码打包/代码打包/plugins",
                 plugin_root_str,
             }
             load["paths"] = [str(path) for path in paths if str(path) not in legacy_roots]
@@ -390,7 +389,7 @@ def activate_plugins_for_run(
     load = plugins.setdefault("load", {})
     paths = load.setdefault("paths", [])
     root_str = str(plan.plugin_root)
-    legacy_roots = {"/mnt/20t/xubuqiang/EcoClaw/代码打包/代码打包/plugins"}
+    legacy_roots: set[str] = set()
     normalized_paths = []
     for path in paths:
         path_str = str(path)

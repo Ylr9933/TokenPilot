@@ -49,8 +49,8 @@ SOURCE_OPENCLAW_CFG="${PINCHBENCH_SOURCE_OPENCLAW_CFG:-${SOURCE_OPENCLAW_HOME}/.
 TMP_ROOT_BASE="${PINCHBENCH_CATEGORY_TMP_ROOT_BASE:-/tmp/pinchbench_by_category}"
 BASE_GATEWAY_PORT="${PINCHBENCH_CATEGORY_BASE_GATEWAY_PORT:-19889}"
 BASE_PROXY_PORT="${PINCHBENCH_CATEGORY_BASE_PROXY_PORT:-18688}"
-PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-/home/xubuqiang/.local/share/fws}"
-PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-/home/xubuqiang/.local/share/fws/config}"
+PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-${HOME}/.local/share/fws}"
+PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-${HOME}/.local/share/fws/config}"
 
 if [[ "${SESSION_MODE}" != "continuous" ]]; then
   echo "run_method_by_category_continuous.sh requires TOKENPILOT_SESSION_MODE=continuous (current=${SESSION_MODE})" >&2
@@ -193,7 +193,6 @@ setup_category_runtime() {
   mkdir -p "${CATEGORY_OPENCLAW_STATE_DIR}/agents"
   rm -rf \
     "${CATEGORY_OPENCLAW_STATE_DIR}/extensions/tokenpilot" \
-    "${CATEGORY_OPENCLAW_STATE_DIR}/extensions/ecoclaw" \
     "${CATEGORY_OPENCLAW_STATE_DIR}/tokenpilot-plugin-state"
 
   python3 - "${CATEGORY_OPENCLAW_CFG}" "${METHOD_MODEL}" <<'PY'
@@ -221,14 +220,12 @@ plugins["allow"] = ["tokenpilot"]
 entries = plugins.get("entries")
 if isinstance(entries, dict):
     entries.pop("tokenpilot", None)
-    entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
     if not installs:
         plugins.pop("installs", None)
 
@@ -241,7 +238,7 @@ if isinstance(load_cfg, dict):
             if not isinstance(item, str):
                 continue
             lowered = item.lower()
-            if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+            if "/extensions/tokenpilot" in lowered:
                 continue
             filtered.append(item)
         if filtered:

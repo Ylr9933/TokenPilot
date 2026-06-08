@@ -21,8 +21,8 @@ TMP_ROOT_BASE="${PINCHBENCH_ISOLATED_ABLATION_TMP_ROOT_BASE:-/tmp/pinchbench_iso
 SOURCE_OPENCLAW_HOME="${PINCHBENCH_SOURCE_OPENCLAW_HOME:-${HOME}}"
 BASE_GATEWAY_PORT="${PINCHBENCH_ISOLATED_ABLATION_BASE_GATEWAY_PORT:-20889}"
 BASE_PROXY_PORT="${PINCHBENCH_ISOLATED_ABLATION_BASE_PROXY_PORT:-19688}"
-PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-/home/xubuqiang/.local/share/fws}"
-PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-/home/xubuqiang/.local/share/fws/config}"
+PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-${HOME}/.local/share/fws}"
+PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-${HOME}/.local/share/fws/config}"
 
 echo "[isolated-ablation] model=${METHOD_MODEL}"
 echo "[isolated-ablation] judge=${METHOD_JUDGE}"
@@ -80,7 +80,6 @@ setup_variant_runtime() {
   mkdir -p "${VARIANT_OPENCLAW_STATE_DIR}/agents"
   rm -rf \
     "${VARIANT_OPENCLAW_STATE_DIR}/extensions/tokenpilot" \
-    "${VARIANT_OPENCLAW_STATE_DIR}/extensions/ecoclaw" \
     "${VARIANT_OPENCLAW_STATE_DIR}/tokenpilot-plugin-state"
 
   python3 - "${VARIANT_OPENCLAW_CFG}" "${METHOD_MODEL}" <<'PY'
@@ -108,14 +107,12 @@ plugins["allow"] = ["tokenpilot"]
 entries = plugins.get("entries")
 if isinstance(entries, dict):
     entries.pop("tokenpilot", None)
-    entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
     if not installs:
         plugins.pop("installs", None)
 
@@ -128,7 +125,7 @@ if isinstance(load_cfg, dict):
             if not isinstance(item, str):
                 continue
             lowered = item.lower()
-            if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+            if "/extensions/tokenpilot" in lowered:
                 continue
             filtered.append(item)
         if filtered:

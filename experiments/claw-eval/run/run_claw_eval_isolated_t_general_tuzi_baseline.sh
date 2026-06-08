@@ -23,7 +23,7 @@ plugins = doc.setdefault("plugins", {})
 
 allow = plugins.get("allow")
 if isinstance(allow, list):
-    allow = [item for item in allow if item not in ("tokenpilot", "ecoclaw")]
+    allow = [item for item in allow if item != "tokenpilot"]
     if allow:
         plugins["allow"] = allow
     else:
@@ -31,14 +31,13 @@ if isinstance(allow, list):
 
 entries = plugins.get("entries")
 if isinstance(entries, dict):
-    for key in ("tokenpilot", "ecoclaw"):
+    for key in ("tokenpilot",):
         if key in entries and isinstance(entries[key], dict):
             entries[key]["enabled"] = False
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
 
 config_path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY

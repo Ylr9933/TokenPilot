@@ -121,11 +121,9 @@ if not isinstance(allow, list):
 load_paths = load_cfg.get("paths")
 if not isinstance(load_paths, list):
     load_paths = []
-entries.pop("ecoclaw", None)
 entries.pop("tokenpilot", None)
 installs = plugins.get("installs")
 if isinstance(installs, dict):
-    installs.pop("ecoclaw", None)
     installs.pop("tokenpilot", None)
     if not installs:
         plugins.pop("installs", None)
@@ -138,7 +136,7 @@ if "paths" in load_cfg:
         if not isinstance(item, str):
             continue
         lowered = item.lower()
-        if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+        if "/extensions/tokenpilot" in lowered:
             continue
         filtered_paths.append(item)
     if filtered_paths:

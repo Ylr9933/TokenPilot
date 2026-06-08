@@ -3,8 +3,7 @@ import { dirname, join } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defaultPluginStateDir,
-  LEGACY_PLUGIN_STATE_DIRNAME,
-  NEXT_PLUGIN_STATE_DIRNAME,
+  PLUGIN_STATE_DIRNAME,
   pluginStateSubdirCandidates,
   pluginStateSubdirWriteTargets,
 } from "@tokenpilot/runtime-core";
@@ -23,8 +22,7 @@ function explicitHomeStateDirs(): string[] {
   const home = homedir().trim();
   if (!home) return [];
   return [
-    join(home, ".openclaw", NEXT_PLUGIN_STATE_DIRNAME),
-    join(home, ".openclaw", LEGACY_PLUGIN_STATE_DIRNAME),
+    join(home, ".openclaw", PLUGIN_STATE_DIRNAME),
   ];
 }
 

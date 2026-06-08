@@ -173,7 +173,6 @@ def patch_baseline_runtime_config(
     plugins = cfg.setdefault("plugins", {})
     load_cfg = plugins.setdefault("load", {})
     entries = plugins.setdefault("entries", {})
-    entries.pop("ecoclaw", None)
     slots = plugins.setdefault("slots", {})
     tokenpilot = entries.setdefault("tokenpilot", {})
     tokenpilot["enabled"] = False

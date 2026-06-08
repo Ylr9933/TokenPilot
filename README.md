@@ -67,7 +67,7 @@ bash experiments/claw-eval/scripts/run_baseline.sh \
   --scope suite \
   --suite T001zh_email_triage \
   --session-mode isolated \
-  --model ecoclaw/gpt-5.4-mini
+  --model tokenpilot/gpt-5.4-mini
 ```
 
 Notes:

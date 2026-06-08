@@ -15,8 +15,8 @@ BASELINE_MAX_TASKS="${BASELINE_MAX_TASKS:-}"
 NOHUP_LOG_DIR="${NOHUP_LOG_DIR:-/tmp}"
 SOURCE_OPENCLAW_HOME="${PINCHBENCH_SOURCE_OPENCLAW_HOME:-${HOME}}"
 BASE_GATEWAY_PORT="${PINCHBENCH_BASELINE_BASE_GATEWAY_PORT:-20989}"
-PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-/home/xubuqiang/.local/share/fws}"
-PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-/home/xubuqiang/.local/share/fws/config}"
+PINCHBENCH_FWS_SHARED_DATA_DIR="${PINCHBENCH_FWS_SHARED_DATA_DIR:-${HOME}/.local/share/fws}"
+PINCHBENCH_GWS_SHARED_CONFIG_DIR="${PINCHBENCH_GWS_SHARED_CONFIG_DIR:-${HOME}/.local/share/fws/config}"
 
 mkdir -p "${NOHUP_LOG_DIR}"
 
@@ -60,9 +60,7 @@ rm -rf "${OPENCLAW_STATE_DIR}/agents"
 mkdir -p "${OPENCLAW_STATE_DIR}/agents"
 rm -rf \
   "${OPENCLAW_STATE_DIR}/extensions/tokenpilot" \
-  "${OPENCLAW_STATE_DIR}/extensions/ecoclaw" \
-  "${OPENCLAW_STATE_DIR}/tokenpilot-plugin-state" \
-  "${OPENCLAW_STATE_DIR}/ecoclaw-plugin-state"
+  "${OPENCLAW_STATE_DIR}/tokenpilot-plugin-state"
 
 cd "${REPO_ROOT}"
 

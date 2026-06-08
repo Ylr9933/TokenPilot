@@ -135,7 +135,7 @@ export async function registerRuntime(api: any, cfg: any, logger: any, deps: any
 
   if (typeof api.registerService === "function") {
     api.registerService({
-      id: "ecoclaw-runtime",
+      id: "tokenpilot-runtime",
       start: () => {
         void ensureProxyReady();
         logger.info("[plugin-runtime] Plugin active.");

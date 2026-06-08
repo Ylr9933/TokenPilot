@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 normalize_openclaw_runtime_env() {
   local openclaw_home="${TOKENPILOT_OPENCLAW_HOME:-${HOME}}"
   local runtime_local_bin="${openclaw_home}/.local/bin"
-  local shared_local_bin="/mnt/20t/xubuqiang/.local/bin"
+  local shared_local_bin="${PINCHBENCH_SHARED_LOCAL_BIN:-}"
   export HOME="${openclaw_home}"
   export OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-${HOME}/.openclaw}"
   export XDG_CACHE_HOME="${XDG_CACHE_HOME:-/tmp/openclaw-cache}"
@@ -415,8 +415,7 @@ if isinstance(existing_paths, list):
         if isinstance(path, str) and path not in ("",)
     ]
 legacy_roots = {
-    "/mnt/20t/xubuqiang/EcoClaw/代码打包/代码打包/plugins",
-}
+  }
 normalized_paths = []
 for path_str in preserved_paths + [plugin_load_path]:
     if path_str in legacy_roots:
@@ -429,7 +428,7 @@ preserved_allow = []
 if isinstance(existing_allow, list):
     preserved_allow = [
         item for item in existing_allow
-        if isinstance(item, str) and item not in ("ecoclaw",)
+        if isinstance(item, str) and item != "tokenpilot"
     ]
 next_allow = []
 for item in preserved_allow + ["tokenpilot"]:
@@ -437,7 +436,7 @@ for item in preserved_allow + ["tokenpilot"]:
         next_allow.append(item)
 plugins["allow"] = next_allow
 entries = plugins.setdefault("entries", {})
-entries.pop("ecoclaw", None)
+entries.pop("tokenpilot", None)
 tokenpilot = entries.setdefault("tokenpilot", {})
 tokenpilot["enabled"] = True
 slots = plugins.setdefault("slots", {})
@@ -670,7 +669,7 @@ with open(config_path, "r", encoding="utf-8") as f:
 plugins = cfg.setdefault("plugins", {})
 plugins.setdefault("slots", {}).setdefault("contextEngine", "layered-context")
 entries = plugins.setdefault("entries", {})
-entries.pop("ecoclaw", None)
+entries.pop("tokenpilot", None)
 tokenpilot_entry = entries.setdefault("tokenpilot", {})
 tokenpilot_entry["enabled"] = True
 tokenpilot_cfg = tokenpilot_entry.setdefault("config", {})
@@ -855,8 +854,6 @@ allowlist = [
     {"id": "usr_bin_git", "pattern": "/usr/bin/git"},
     {"id": "usr_bin_gh", "pattern": "/usr/bin/gh"},
     {"id": "usr_local_bin_python3", "pattern": "/usr/local/bin/python3"},
-    {"id": "mnt20_local_bin_gh", "pattern": "/mnt/20t/xubuqiang/.local/bin/gh"},
-    {"id": "mnt20_local_share_gh_bin", "pattern": "/mnt/20t/xubuqiang/.local/share/gh-cli/gh.bin"},
     {"id": "home_local_bin_gws", "pattern": home + "/.local/bin/gws"},
     {"id": "home_local_bin_fws", "pattern": home + "/.local/bin/fws"},
     {"id": "home_nvm_bin_fws", "pattern": home + "/.nvm/versions/node/v22.16.0/bin/fws"},

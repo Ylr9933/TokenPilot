@@ -40,7 +40,7 @@ OPENCLAW_AGENT_LOCAL = os.environ.get("OPENCLAW_AGENT_LOCAL", "false").strip().l
 }
 DEFAULT_BENCH_OPENCLAW_HOME = Path(
     os.environ.get("TOKENPILOT_OPENCLAW_HOME")
-    or "/mnt/20t/xubuqiang"
+    or str(Path.home())
 )
 DEFAULT_BENCH_OPENCLAW_STATE_DIR = DEFAULT_BENCH_OPENCLAW_HOME / ".openclaw"
 if not os.environ.get("OPENCLAW_CONFIG_PATH"):
@@ -49,7 +49,7 @@ if not os.environ.get("OPENCLAW_CONFIG_PATH"):
         os.environ["OPENCLAW_CONFIG_PATH"] = str(default_config_path)
 if not os.environ.get("OPENCLAW_STATE_DIR") and DEFAULT_BENCH_OPENCLAW_STATE_DIR.exists():
     os.environ["OPENCLAW_STATE_DIR"] = str(DEFAULT_BENCH_OPENCLAW_STATE_DIR)
-if not os.environ.get("HOME") or os.environ.get("HOME") == "/home/xubuqiang":
+if not os.environ.get("HOME"):
     if DEFAULT_BENCH_OPENCLAW_HOME.exists():
         os.environ["HOME"] = str(DEFAULT_BENCH_OPENCLAW_HOME)
         os.environ.setdefault("XDG_CACHE_HOME", str(DEFAULT_BENCH_OPENCLAW_HOME / ".cache"))
@@ -654,10 +654,7 @@ def _get_tokenpilot_plugin_state_dir() -> Path | None:
         return None
     base = Path(state_dir)
     candidates = [
-        base / "tokenpilot-plugin-state" / "ecoclaw",
         base / "tokenpilot-plugin-state" / "tokenpilot",
-        base / "ecoclaw-plugin-state" / "ecoclaw",
-        base / "ecoclaw-plugin-state" / "tokenpilot",
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -735,7 +732,7 @@ def _maybe_log_transcript_resolution_debug(agent_id: str) -> None:
     try:
         real_home = Path(pwd.getpwuid(os.getuid()).pw_dir)
     except Exception:
-        real_home = Path("/home/xubuqiang")
+        real_home = Path.home()
 
     chosen_agent_dir = _get_agent_store_dir(agent_id)
     runtime_state_dir = Path(os.environ.get("OPENCLAW_STATE_DIR", ""))

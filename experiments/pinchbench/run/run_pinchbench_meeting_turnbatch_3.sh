@@ -36,7 +36,7 @@ esac
 MEETING_SUITE="${PINCHBENCH_MEETING_SUITE:-${DEFAULT_MEETING_SUITE}}"
 OUTPUT_DIR="${PINCHBENCH_MEETING_OUTPUT_DIR:-${PINCHBENCH_ROOT}/save/continuous/method/meeting_turnbatch_3}"
 PINCHBENCH_TMP_ROOT="${PINCHBENCH_TMP_ROOT:-/tmp/pinchbench_meeting_turnbatch_3}"
-SOURCE_OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-/home/xubuqiang}"
+SOURCE_OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${HOME}}"
 SOURCE_OPENCLAW_CFG="${OPENCLAW_CONFIG_PATH:-${SOURCE_OPENCLAW_HOME}/.openclaw/openclaw.json}"
 RUNTIME_OPENCLAW_HOME="${PINCHBENCH_RUNTIME_OPENCLAW_HOME:-${PINCHBENCH_TMP_ROOT}/openclaw_home}"
 OPENCLAW_HOME="${RUNTIME_OPENCLAW_HOME}"
@@ -78,7 +78,7 @@ fi
 # absolute sessionFile pointers from the source home.
 rm -rf "${OPENCLAW_STATE_DIR}/agents"
 mkdir -p "${OPENCLAW_STATE_DIR}/agents"
-rm -rf "${OPENCLAW_STATE_DIR}/extensions/tokenpilot" "${OPENCLAW_STATE_DIR}/extensions/ecoclaw"
+rm -rf "${OPENCLAW_STATE_DIR}/extensions/tokenpilot"
 
 # The copied config carries a large historical agents.list with absolute agentDir
 # pointers back into the source home. Clear that metadata so benchmark runs only
@@ -108,7 +108,7 @@ agents["list"] = [{"id": "main"}]
 plugins = data.setdefault("plugins", {})
 allow = plugins.get("allow")
 if isinstance(allow, list):
-    allow = [item for item in allow if item not in ("tokenpilot", "ecoclaw")]
+    allow = [item for item in allow if item != "tokenpilot"]
 allow = allow or []
 if "tokenpilot" not in allow:
     allow.append("tokenpilot")
@@ -117,14 +117,12 @@ plugins["allow"] = allow
 entries = plugins.get("entries")
 if isinstance(entries, dict):
     entries.pop("tokenpilot", None)
-    entries.pop("ecoclaw", None)
     if not entries:
         plugins.pop("entries", None)
 
 installs = plugins.get("installs")
 if isinstance(installs, dict):
     installs.pop("tokenpilot", None)
-    installs.pop("ecoclaw", None)
     if not installs:
         plugins.pop("installs", None)
 
@@ -137,7 +135,7 @@ if isinstance(load_cfg, dict):
             if not isinstance(item, str):
                 continue
             lowered = item.lower()
-            if "/extensions/tokenpilot" in lowered or "/extensions/ecoclaw" in lowered:
+            if "/extensions/tokenpilot" in lowered:
                 continue
             filtered.append(item)
         if filtered:

@@ -1,5 +1,5 @@
 {
-    "name": "ecoclaw",
+    "name": "tokenpilot",
     "private": true,
     "version": "0.1.0",
     "description": "TokenPilot: Lightweight and Efficient Context Management for Lifelong Agents",

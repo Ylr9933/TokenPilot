@@ -17,32 +17,24 @@ export function resolveUpstreamProxySettings(): {
   const httpProxy = resolveProxyEnvValue(
     "TOKENPILOT_UPSTREAM_HTTP_PROXY",
     "tokenpilot_upstream_http_proxy",
-    "ECOCLAW_UPSTREAM_HTTP_PROXY",
-    "ecoclaw_upstream_http_proxy",
     "http_proxy",
     "HTTP_PROXY",
   );
   const httpsProxy = resolveProxyEnvValue(
     "TOKENPILOT_UPSTREAM_HTTPS_PROXY",
     "tokenpilot_upstream_https_proxy",
-    "ECOCLAW_UPSTREAM_HTTPS_PROXY",
-    "ecoclaw_upstream_https_proxy",
     "https_proxy",
     "HTTPS_PROXY",
   ) ?? httpProxy;
   const allProxy = resolveProxyEnvValue(
     "TOKENPILOT_UPSTREAM_ALL_PROXY",
     "tokenpilot_upstream_all_proxy",
-    "ECOCLAW_UPSTREAM_ALL_PROXY",
-    "ecoclaw_upstream_all_proxy",
     "all_proxy",
     "ALL_PROXY",
   );
   const noProxy = resolveProxyEnvValue(
     "TOKENPILOT_UPSTREAM_NO_PROXY",
     "tokenpilot_upstream_no_proxy",
-    "ECOCLAW_UPSTREAM_NO_PROXY",
-    "ecoclaw_upstream_no_proxy",
     "no_proxy",
     "NO_PROXY",
   ) ?? "127.0.0.1,localhost";

@@ -2,12 +2,12 @@
 import {
   rewriteCanonicalState as rewriteCanonicalStateBase,
   syncCanonicalStateFromTranscript,
-  type EcoCanonicalState,
+  type CanonicalTranscriptState,
   type RewriteCanonicalStateParams,
 } from "@tokenpilot/history";
 import { applyCanonicalEviction } from "./canonical-eviction.js";
 
-export { syncCanonicalStateFromTranscript, type EcoCanonicalState };
+export { syncCanonicalStateFromTranscript, type CanonicalTranscriptState };
 
 export async function rewriteCanonicalState(
   params: Omit<RewriteCanonicalStateParams, "applyCanonicalEviction">,

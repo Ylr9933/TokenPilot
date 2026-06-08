@@ -352,7 +352,7 @@ def _model_env_key(model_like: str) -> str:
 
 
 def _load_pinchbench_env_fallback() -> None:
-    env_path = Path("/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/pinchbench/.env")
+    env_path = Path(__file__).resolve().parents[2] / "pinchbench" / ".env"
     if not env_path.exists():
         return
     for line in env_path.read_text(encoding="utf-8").splitlines():

@@ -41,12 +41,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser = argparse.ArgumentParser(description="Category-level Prompting evaluation with cumulative skill injection")
     parser.add_argument("--tasks-dir", default=str(Path(__file__).resolve().parents[1] / "dataset" / "tasks"))
-    parser.add_argument("--trace-root", default="/mnt/20t/xubuqiang/EcoClaw/claw-eval/traces")
+    parser.add_argument("--trace-root", default=str(Path(__file__).resolve().parents[1] / "traces"))
     parser.add_argument("--category", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--judge", default="kuaipao/gpt-5.4-mini")
-    parser.add_argument("--prompt-harness", default="/mnt/20t/xubuqiang/EcoClaw/test_prompt/prompt_harness.mjs")
-    parser.add_argument("--prompt-runs-root", default="/mnt/20t/xubuqiang/EcoClaw/test_prompt/runs")
+    default_prompt_root = Path(__file__).resolve().parents[3] / "test_prompt"
+    parser.add_argument("--prompt-harness", default=str(default_prompt_root / "prompt_harness.mjs"))
+    parser.add_argument("--prompt-runs-root", default=str(default_prompt_root / "runs"))
     parser.add_argument("--output-dir", default=str(Path(__file__).resolve().parents[1] / "save" / "prompting_category"))
     parser.add_argument(
         "--plugin-root",
@@ -90,7 +91,6 @@ def prepare_tmp_openclaw_home(source_home: Path, label: str) -> tuple[Path, Path
 
     for child in (
         "tokenpilot-plugin-state",
-        "ecoclaw-plugin-state",
         "logs",
         "completions",
         "canvas",

@@ -24,16 +24,16 @@ export function injectMemoryFaultProtocolInstructions(payload: any): boolean {
 
 export function stripInternalPayloadMarkers(payload: any): void {
   if (!payload || typeof payload !== "object") return;
-  if (Object.prototype.hasOwnProperty.call(payload, "__ecoclaw_reduction_applied")) {
-    delete payload.__ecoclaw_reduction_applied;
+  if (Object.prototype.hasOwnProperty.call(payload, "__tokenpilot_reduction_applied")) {
+    delete payload.__tokenpilot_reduction_applied;
   }
   if (!Array.isArray(payload.input)) return;
   payload.input = payload.input.map((item: any) => {
     if (!item || typeof item !== "object") return item;
     let changed = false;
     const clone: Record<string, unknown> = { ...item };
-    if (Object.prototype.hasOwnProperty.call(clone, "__ecoclaw_replay_raw")) {
-      delete clone.__ecoclaw_replay_raw;
+    if (Object.prototype.hasOwnProperty.call(clone, "__tokenpilot_replay_raw")) {
+      delete clone.__tokenpilot_replay_raw;
       changed = true;
     }
     return changed ? clone : item;

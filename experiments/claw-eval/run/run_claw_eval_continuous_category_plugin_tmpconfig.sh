@@ -82,7 +82,6 @@ prepare_tmp_openclaw_home() {
   # caches do not leak into the smoke run.
   rm -rf \
     "${tmp_state}/tokenpilot-plugin-state" \
-    "${tmp_state}/ecoclaw-plugin-state" \
     "${tmp_state}/logs" \
     "${tmp_state}/completions" \
     "${tmp_state}/canvas" \

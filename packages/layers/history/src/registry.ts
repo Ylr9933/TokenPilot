@@ -6,9 +6,6 @@ import type {
   TaskState,
 } from "./types.js";
 
-const LEGACY_PLUGIN_STATE_DIRNAME = "ecoclaw-plugin-state";
-const NEXT_PLUGIN_STATE_DIRNAME = "tokenpilot-plugin-state";
-
 function dedupeOrdered(values: string[] | undefined): string[] | undefined {
   if (!values) return undefined;
   const out: string[] = [];
@@ -120,16 +117,7 @@ export function sessionTaskRegistryPath(stateDir: string, sessionId: string): st
 function sessionTaskRegistryPathCandidates(stateDir: string, sessionId: string): string[] {
   const safeId = safeSessionId(sessionId);
   const trimmed = stateDir.trim();
-  const out = [
-    join(trimmed, "task-state", safeId, "registry.json"),
-  ];
-  if (trimmed.includes(LEGACY_PLUGIN_STATE_DIRNAME)) {
-    out.push(join(trimmed.replace(LEGACY_PLUGIN_STATE_DIRNAME, NEXT_PLUGIN_STATE_DIRNAME), "task-state", safeId, "registry.json"));
-  }
-  if (trimmed.includes(NEXT_PLUGIN_STATE_DIRNAME)) {
-    out.push(join(trimmed.replace(NEXT_PLUGIN_STATE_DIRNAME, LEGACY_PLUGIN_STATE_DIRNAME), "task-state", safeId, "registry.json"));
-  }
-  return Array.from(new Set(out));
+  return [join(trimmed, "task-state", safeId, "registry.json")];
 }
 
 function sessionTaskRegistryWriteTargets(stateDir: string, sessionId: string): string[] {

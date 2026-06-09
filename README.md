@@ -43,8 +43,10 @@ The main goal of this README is to help a new user install the plugin and run it
 
 You need:
 
+- **git**
 - **Node.js 20+**
 - **pnpm** via `corepack`
+- **Python 3**
 - **OpenClaw** installed and already runnable on your machine
 - a working OpenClaw config at `~/.openclaw/openclaw.json`
 - at least one provider/model in OpenClaw that can already answer normally
@@ -167,42 +169,22 @@ The smoke script will:
 
 ## 🏗️ Architecture
 
-TokenPilot sits between OpenClaw and your upstream model provider.
-The plugin layer receives session traffic, normalizes it, and routes the request through runtime-core before forwarding it upstream.
+TokenPilot uses a modular layout so the OpenClaw adapter, runtime engine, shared contracts, and stateful layers stay separated.
 
-Its public behavior is built around three runtime mechanisms:
-
-### 1. Stable Prefix
-
-TokenPilot rewrites volatile runtime fields so consecutive requests share a more stable cacheable prefix.
-This improves provider-side cache reuse.
-
-### 2. Observation Reduction
-
-TokenPilot applies reduction passes to noisy or oversized payloads, including:
-
-- repeated read deduplication
-- tool payload trimming
-- HTML slimming
-- execution output truncation
-- format/path cleanup
-
-If truncation removes something important, the plugin can preserve recovery metadata so the agent can fetch the full content later.
-
-### 3. Lifecycle-Aware Eviction
-
-For continuous multi-task sessions, TokenPilot tracks task lifecycle states such as:
-
-- `active`
-- `completed`
-- `evictable`
-
-This allows the runtime to remove cold completed tasks instead of replaying them forever.
-
-The most important source directories for open-source users are:
-
-- `packages/openclaw-plugin/`
-- `packages/runtime-core/`
+```text
+TokenPilot/
+├── packages/
+│   ├── openclaw-plugin/    # OpenClaw adapter, hooks, commands, embedded proxy
+│   ├── runtime-core/       # Host-agnostic runtime engine and shared execution logic
+│   ├── kernel/             # Shared types, interfaces, events, and runtime contracts
+│   └── layers/             # Stateful and policy-oriented logic
+│       ├── history/        # Canonical state, raw semantic turns, task registry
+│       ├── decision/       # Policy analysis, reduction/eviction decisions, estimator
+│       └── memory/         # Experimental memory layer; distillation and retrieval are still in progress
+├── docs/                   # Public-facing notes and smoke helpers
+├── experiments/            # Benchmark adapters and evaluation scripts
+└── README.md
+```
 
 <span id='examples'/>
 

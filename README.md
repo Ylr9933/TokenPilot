@@ -1,33 +1,28 @@
-<h1 align="center">TokenPilot</h1>
+<h1 align="center">LightMem2</h1>
 
 <p align="center">
-  Cache-efficient context management for long-running OpenClaw agents
+  A modular framework for long-running agent memory and context management
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Framework-LightMem2-black" alt="framework">
   <img src="https://img.shields.io/badge/Runtime-OpenClaw-green" alt="runtime">
-  <img src="https://img.shields.io/badge/Plugin-TokenPilot-blue" alt="plugin">
+  <img src="https://img.shields.io/badge/Component-TokenPilot-blue" alt="component">
   <img src="https://img.shields.io/badge/Package%20Manager-pnpm-informational" alt="pnpm">
   <img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="license">
 </p>
 
 <p align="center">
-  Stable Prefix, Observation Reduction, and Lifecycle-Aware Eviction for practical long-session agents
+  A practical foundation for long-running agent memory and context management
 </p>
 
 ---
 
-**TokenPilot** is an OpenClaw runtime plugin for reducing token cost in long-running agent sessions.
-It focuses on a practical deployment problem: once an agent keeps working in one shared session, prompt history grows, tool outputs accumulate, and cache reuse becomes unstable.
+**LightMem2** is a modular framework for long-running agent memory and context management.
+This repository currently exposes its OpenClaw-based runtime path, installation flow, and supporting experiments through the LightMem2 codebase below.
 
-TokenPilot addresses this with three runtime mechanisms:
-
-- **Stable Prefix**: keep the reusable prompt prefix structurally stable across turns
-- **Observation Reduction**: trim bulky tool outputs before they pollute later requests
-- **Lifecycle-Aware Eviction**: remove cold completed tasks from canonical history when needed
-
-This repository is organized first as a usable open-source project.
-The main goal of this README is to help a new user install the plugin and run it successfully.
+<details>
+  <summary><strong>TokenPilot Component Guide</strong></summary>
 
 <span id='news'/>
 
@@ -58,6 +53,8 @@ By default it uses the standard OpenClaw home and config location under `~/.open
 
 ### Installation Steps
 
+The current installation flow below is for the **TokenPilot** component.
+
 ```bash
 git clone https://github.com/Xubqpanda/TokenPilot.git
 cd TokenPilot
@@ -84,6 +81,8 @@ pnpm plugin:pack:release
 <span id='quickstart'/>
 
 ## ⚡ Quick Start
+
+This quick start currently focuses on the **TokenPilot** runtime component inside LightMem2.
 
 ### 1. Use the TokenPilot Model Namespace
 
@@ -169,10 +168,10 @@ The smoke script will:
 
 ## 🏗️ Architecture
 
-TokenPilot uses a modular layout so the OpenClaw adapter, runtime engine, shared contracts, and stateful layers stay separated.
+LightMem2 currently exposes the TokenPilot component as its main public runtime path, with the OpenClaw adapter, runtime engine, shared contracts, and stateful layers kept separate.
 
 ```text
-TokenPilot/
+LightMem2/
 ├── packages/
 │   ├── openclaw-plugin/    # OpenClaw adapter, hooks, commands, embedded proxy
 │   ├── runtime-core/       # Host-agnostic runtime engine and shared execution logic
@@ -191,6 +190,8 @@ TokenPilot/
 ## 💡 Examples
 
 ### Runtime Commands
+
+The examples below are for the **TokenPilot** component inside LightMem2.
 
 TokenPilot exposes a small command surface inside OpenClaw sessions.
 
@@ -237,7 +238,7 @@ For most users, the recommended default is:
 
 ## ⚙️ Configuration
 
-TokenPilot is configured through your OpenClaw config, typically:
+The configuration below is for the **TokenPilot** component, through your OpenClaw config, typically:
 
 ```text
 ~/.openclaw/openclaw.json
@@ -412,3 +413,5 @@ OPENCLAW_CONFIG_PATH="$HOME/.openclaw/openclaw.json" openclaw config validate
 ```
 
 - If the plugin is installed but you still used the original model, switch to a `tokenpilot/<model>` model key.
+
+</details>

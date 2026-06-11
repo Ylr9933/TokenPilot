@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 import { mkdir, appendFile } from "node:fs/promises";
 import { pluginStateSubdir } from "@tokenpilot/runtime-core";
 import { summarizeResponseFunctionCalls } from "./proxy-runtime-shared.js";
+import { appendReductionVisualSnapshot } from "../../commands/tokenpilot/session-visual-data.js";
 
 function buildRequestId(parts: unknown[]): string {
   return createHash("sha1").update(JSON.stringify(parts)).digest("hex").slice(0, 16);
@@ -95,6 +96,27 @@ export async function recordProxyInbound(params: {
       reductionChangedBlocks: reductionApplied.changedBlocks,
     },
   });
+  for (const segment of Array.isArray(reductionApplied.visualSegments) ? reductionApplied.visualSegments : []) {
+    await appendReductionVisualSnapshot(cfg.stateDir, {
+      kind: "reduction",
+      at: requestAt,
+      sessionId: resolvedSessionId,
+      requestId,
+      model,
+      upstreamModel,
+      segmentId: segment.segmentId,
+      itemIndex: segment.itemIndex,
+      field: segment.field,
+      blockIndex: segment.blockIndex,
+      blockKey: segment.blockKey,
+      toolName: segment.toolName,
+      dataPath: segment.dataPath,
+      savedChars: Number(segment.savedChars ?? 0),
+      beforeText: String(segment.beforeText ?? ""),
+      afterText: String(segment.afterText ?? ""),
+      report: Array.isArray(segment.report) ? segment.report : [],
+    });
+  }
   if (!cfg.debugTapProviderTraffic) return;
 
   const debugRecord = {

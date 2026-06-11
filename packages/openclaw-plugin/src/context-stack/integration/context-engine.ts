@@ -34,6 +34,7 @@ export function createPluginContextEngine(cfg: any, logger: any, deps: any) {
         evictionReplacementMode: cfg.eviction.replacementMode,
         helpers: {
           appendTaskStateTrace: deps.appendTaskStateTrace,
+          appendEvictionVisualSnapshot: deps.appendEvictionVisualSnapshot,
           asRecord: deps.asRecord,
           canonicalMessageTaskIds: canonicalMessageTaskIdsBound,
           contentToText: deps.contentToText,
@@ -78,6 +79,7 @@ export function createPluginContextEngine(cfg: any, logger: any, deps: any) {
         evictionReplacementMode: cfg.eviction.replacementMode,
         helpers: {
           appendTaskStateTrace: deps.appendTaskStateTrace,
+          appendEvictionVisualSnapshot: deps.appendEvictionVisualSnapshot,
           asRecord: deps.asRecord,
           canonicalMessageTaskIds: canonicalMessageTaskIdsBound,
           contentToText: deps.contentToText,
@@ -124,6 +126,7 @@ export function createPluginContextEngine(cfg: any, logger: any, deps: any) {
         evictionReplacementMode: cfg.eviction.replacementMode,
         helpers: {
           appendTaskStateTrace: deps.appendTaskStateTrace,
+          appendEvictionVisualSnapshot: deps.appendEvictionVisualSnapshot,
           asRecord: deps.asRecord,
           canonicalMessageTaskIds: canonicalMessageTaskIdsBound,
           contentToText: deps.contentToText,

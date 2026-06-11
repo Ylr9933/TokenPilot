@@ -72,6 +72,20 @@ export async function syncCanonicalStateFromTranscript<TEntry>(params: {
 type RewriteHelpers = {
   asRecord: (value: unknown) => Record<string, unknown> | undefined;
   appendTaskStateTrace: (stateDir: string, payload: Record<string, unknown>) => Promise<void>;
+  appendEvictionVisualSnapshot?: (payload: {
+    at: string;
+    sessionId: string;
+    taskId: string;
+    taskLabel?: string;
+    replacementMode: "pointer_stub" | "drop";
+    beforeText: string;
+    afterText: string;
+    beforeChars: number;
+    afterChars: number;
+    archivePath: string;
+    dataKey: string;
+    turnAbsIds: string[];
+  }) => Promise<void>;
   canonicalMessageTaskIds: (message: Record<string, unknown>) => string[];
   contentToText: (value: unknown) => string;
   dedupeStrings: (values: string[]) => string[];
@@ -107,6 +121,7 @@ export type CanonicalEvictionAdapter = (params: {
     RewriteHelpers,
     | "asRecord"
     | "appendTaskStateTrace"
+    | "appendEvictionVisualSnapshot"
     | "canonicalMessageTaskIds"
     | "contentToText"
     | "dedupeStrings"
@@ -164,6 +179,7 @@ export async function rewriteCanonicalState(params: RewriteCanonicalStateParams)
     helpers: {
       asRecord: params.helpers.asRecord,
       appendTaskStateTrace: params.helpers.appendTaskStateTrace,
+      appendEvictionVisualSnapshot: params.helpers.appendEvictionVisualSnapshot,
       canonicalMessageTaskIds: params.helpers.canonicalMessageTaskIds,
       contentToText: params.helpers.contentToText,
       dedupeStrings: params.helpers.dedupeStrings,

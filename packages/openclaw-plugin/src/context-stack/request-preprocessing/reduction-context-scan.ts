@@ -147,7 +147,7 @@ export function scanReductionInput(params: {
         segmentId,
         text,
         buildMetadata(text, fieldName),
-        { segmentId, itemIndex: index, field: fieldName, beforeLen: text.length },
+        { segmentId, itemIndex: index, field: fieldName, beforeLen: text.length, toolName, dataPath },
       );
       if (applyReduction && !isMemoryFaultRecoveryTool) {
         onReducibleText(segmentId, text, toolName);
@@ -165,7 +165,7 @@ export function scanReductionInput(params: {
         segmentId,
         item.content,
         buildMetadata(item.content, "content"),
-        { segmentId, itemIndex: index, field: "content", beforeLen: item.content.length },
+        { segmentId, itemIndex: index, field: "content", beforeLen: item.content.length, toolName, dataPath },
       );
       if (!isMemoryFaultRecoveryTool) {
         onReducibleText(segmentId, item.content, toolName);
@@ -197,6 +197,8 @@ export function scanReductionInput(params: {
             blockIndex,
             blockKey,
             beforeLen: text.length,
+            toolName,
+            dataPath,
           },
         );
         if (!isMemoryFaultRecoveryTool) {

@@ -98,6 +98,20 @@ export function registerLayeredContextEngine(params: {
   logger: any;
   createPluginContextEngine: (cfg: any, logger: any, deps: any) => any;
   appendTaskStateTrace: (stateDir: string, payload: Record<string, unknown>) => Promise<void>;
+  appendEvictionVisualSnapshot?: (payload: {
+    at: string;
+    sessionId: string;
+    taskId: string;
+    taskLabel?: string;
+    replacementMode: "pointer_stub" | "drop";
+    beforeText: string;
+    afterText: string;
+    beforeChars: number;
+    afterChars: number;
+    archivePath: string;
+    dataKey: string;
+    turnAbsIds: string[];
+  }) => Promise<void>;
   readTranscriptEntriesForSession: (sessionId: string) => Promise<any[] | null>;
   transcriptMessageStableId: (row: any) => string;
   asRecord: (value: unknown) => Record<string, unknown> | undefined;
@@ -117,6 +131,7 @@ export function registerLayeredContextEngine(params: {
     logger,
     createPluginContextEngine,
     appendTaskStateTrace,
+    appendEvictionVisualSnapshot,
     readTranscriptEntriesForSession,
     transcriptMessageStableId,
     asRecord,
@@ -135,6 +150,7 @@ export function registerLayeredContextEngine(params: {
   if (typeof api.registerContextEngine === "function") {
     api.registerContextEngine("layered-context", () => createPluginContextEngine(cfg, logger, {
       appendTaskStateTrace,
+      appendEvictionVisualSnapshot,
       readTranscriptEntriesForSession,
       transcriptMessageStableId,
       asRecord,

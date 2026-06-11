@@ -1,7 +1,14 @@
 import type { RuntimeTurnContext } from "@tokenpilot/kernel";
 
 export type ProxyReductionBinding =
-  | { segmentId: string; itemIndex: number; field: "arguments" | "output" | "result"; beforeLen: number }
+  | {
+    segmentId: string;
+    itemIndex: number;
+    field: "arguments" | "output" | "result";
+    beforeLen: number;
+    toolName?: string;
+    dataPath?: string;
+  }
   | {
     segmentId: string;
     itemIndex: number;
@@ -9,6 +16,8 @@ export type ProxyReductionBinding =
     blockIndex?: number;
     blockKey?: "text" | "content";
     beforeLen: number;
+    toolName?: string;
+    dataPath?: string;
   };
 
 export type ReductionContextPassToggles = {

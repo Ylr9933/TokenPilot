@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { resolveReductionPasses, runReductionBeforeCall } from "@tokenpilot/runtime-core";
 import type { ContextSegment, RuntimeModule } from "@tokenpilot/kernel";
+import type { ProxyReductionBinding } from "./reduction-context-types.js";
 
 export type BeforeCallPassToggles = {
   repeatedReadDedup?: boolean;
@@ -19,6 +20,29 @@ export type ProxyReductionResult = {
   changedItems: number;
   changedBlocks: number;
   savedChars: number;
+  visualSegments?: Array<{
+    segmentId: string;
+    itemIndex: number;
+    field: "content" | "arguments" | "output" | "result";
+    blockIndex?: number;
+    blockKey?: "text" | "content";
+    toolName?: string;
+    dataPath?: string;
+    beforeText: string;
+    afterText: string;
+    savedChars: number;
+    report: Array<{
+      id: string;
+      phase: string;
+      target: string;
+      changed: boolean;
+      note?: string;
+      skippedReason?: string;
+      beforeChars: number;
+      afterChars: number;
+      touchedSegmentIds?: string[];
+    }>;
+  }>;
   report?: Array<{
     id: string;
     phase: string;
@@ -53,6 +77,8 @@ type ReductionBinding = {
   blockKey?: string;
   beforeLen: number;
   segmentId: string;
+  toolName?: string;
+  dataPath?: string;
 };
 
 type BuildReductionContextResult = {
@@ -212,16 +238,19 @@ export async function applyLayeredReductionToInput(
       let changedBlocks = 0;
       let savedChars = 0;
       const changedItems = new Set<number>();
+      const visualSegments: NonNullable<ProxyReductionResult["visualSegments"]> = [];
 
-      for (const binding of bindings) {
+      for (const binding of bindings as ProxyReductionBinding[]) {
         if (!changedIds.has(binding.segmentId)) continue;
         const reduced = segmentMap.get(binding.segmentId);
         if (!reduced) continue;
         const nextText = reduced.text;
+        let previousText = "";
         if (binding.field === "arguments" || binding.field === "output" || binding.field === "result") {
           const item = payload.input[binding.itemIndex];
           if (!item || typeof item !== "object") continue;
           if (typeof item[binding.field] !== "string") continue;
+          previousText = item[binding.field];
           if (item[binding.field] === nextText) continue;
           item[binding.field] = nextText;
         } else if (binding.field === "content") {
@@ -229,6 +258,7 @@ export async function applyLayeredReductionToInput(
           if (!item || typeof item !== "object") continue;
           if (binding.blockIndex === undefined) {
             if (typeof item.content !== "string") continue;
+            previousText = item.content;
             if (item.content === nextText) continue;
             item.content = nextText;
           } else {
@@ -236,18 +266,36 @@ export async function applyLayeredReductionToInput(
             const block = item.content[binding.blockIndex];
             if (!block || typeof block !== "object" || !binding.blockKey) continue;
             if (typeof (block as any)[binding.blockKey] !== "string") continue;
+            previousText = (block as any)[binding.blockKey];
             if ((block as any)[binding.blockKey] === nextText) continue;
             (block as any)[binding.blockKey] = nextText;
           }
         }
         changedItems.add(binding.itemIndex);
         changedBlocks += 1;
-        savedChars += Math.max(0, binding.beforeLen - nextText.length);
+        const segmentSavedChars = Math.max(0, previousText.length - nextText.length);
+        savedChars += segmentSavedChars;
+        visualSegments.push({
+          segmentId: binding.segmentId,
+          itemIndex: binding.itemIndex,
+          field: binding.field,
+          blockIndex: binding.field === "content" ? binding.blockIndex : undefined,
+          blockKey: binding.field === "content" && (binding.blockKey === "text" || binding.blockKey === "content")
+            ? binding.blockKey
+            : undefined,
+          toolName: binding.toolName,
+          dataPath: binding.dataPath,
+          beforeText: previousText,
+          afterText: nextText,
+          savedChars: segmentSavedChars,
+          report: report.filter((entry) => entry.changed && Array.isArray(entry.touchedSegmentIds) && entry.touchedSegmentIds.includes(binding.segmentId)),
+        });
       }
       return {
         changedItems: changedItems.size,
         changedBlocks,
         savedChars,
+        visualSegments,
         report,
         diagnostics: {
           engine: "layered" as const,

@@ -21,6 +21,20 @@ type CanonicalTaskArchiveInfo = {
 export type EvictionHelpers = {
   asRecord: (value: unknown) => Record<string, unknown> | undefined;
   appendTaskStateTrace: (stateDir: string, payload: Record<string, unknown>) => Promise<void>;
+  appendEvictionVisualSnapshot?: (payload: {
+    at: string;
+    sessionId: string;
+    taskId: string;
+    taskLabel?: string;
+    replacementMode: "pointer_stub" | "drop";
+    beforeText: string;
+    afterText: string;
+    beforeChars: number;
+    afterChars: number;
+    archivePath: string;
+    dataKey: string;
+    turnAbsIds: string[];
+  }) => Promise<void>;
   canonicalMessageTaskIds: (message: Record<string, unknown>) => string[];
   contentToText: (value: unknown) => string;
   dedupeStrings: (values: string[]) => string[];
@@ -396,12 +410,12 @@ export async function applyCanonicalEviction(params: {
             },
           });
       const originalSize = existingArchive?.originalSize ?? bundle.totalChars;
+      const taskLabel = visibleTaskLabel(taskId, params.registry);
+      const stubText =
+        taskLabel
+          ? `[Completed task paged out] We previously completed a task about ${taskLabel}, and it has been paged out from the active context to save space.`
+          : "[Completed task paged out] We previously completed an earlier task, and it has been paged out from the active context to save space.";
       if (params.replacementMode === "pointer_stub") {
-        const taskLabel = visibleTaskLabel(taskId, params.registry);
-        const stub =
-          taskLabel
-            ? `[Completed task paged out] We previously completed a task about ${taskLabel}, and it has been paged out from the active context to save space.`
-            : `[Completed task paged out] We previously completed an earlier task, and it has been paged out from the active context to save space.`;
         const representativeStopReason =
           typeof representative.stopReason === "string" && representative.stopReason.trim().length > 0
             ? representative.stopReason
@@ -409,7 +423,7 @@ export async function applyCanonicalEviction(params: {
         const representativeMessage = {
           ...representative,
           role: "assistant",
-          content: [{ type: "text", text: stub }],
+          content: [{ type: "text", text: stubText }],
           details: params.helpers.ensureContextSafeDetails(representative.details, {
             turnAbsId: normalizedTurns[0] ?? representativeContextSafe?.turnAbsId,
             taskIds: [taskId],
@@ -436,6 +450,20 @@ export async function applyCanonicalEviction(params: {
       } else {
         for (const idx of bundle.messageIndexes) skipIndexes.add(idx);
       }
+      await params.helpers.appendEvictionVisualSnapshot?.({
+        at: new Date().toISOString(),
+        sessionId: params.sessionId,
+        taskId,
+        taskLabel,
+        replacementMode: params.replacementMode,
+        beforeText: bundle.archiveParts.join("\n\n"),
+        afterText: params.replacementMode === "pointer_stub" ? stubText : "[Dropped from canonical context after archival]",
+        beforeChars: originalSize,
+        afterChars: params.replacementMode === "pointer_stub" ? stubText.length : 0,
+        archivePath: archived.archivePath,
+        dataKey,
+        turnAbsIds: normalizedTurns,
+      });
       changed = true;
       appliedCount += 1;
       appliedTaskIds.push(taskId);

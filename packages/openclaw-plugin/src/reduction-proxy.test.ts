@@ -70,6 +70,10 @@ const hooks = plugin.__testHooks as {
     streamChunks: Buffer[];
     reductionApplied?: { savedChars?: number } | null;
   }) => Promise<void>;
+  appendReductionVisualSnapshot: (stateDir: string, snapshot: any) => Promise<void>;
+  appendEvictionVisualSnapshot: (stateDir: string, snapshot: any) => Promise<void>;
+  readVisualSessionData: (stateDir: string, sessionId: string) => Promise<any>;
+  readVisualSessionList: (stateDir: string) => Promise<any[]>;
 };
 
 test("applyProxyReductionToInput reduces large tool payload and preserves non-tool entries", async () => {
@@ -315,6 +319,57 @@ test("recordStreamingUxEffect uses canonical request snapshots in char mode", as
   assert.equal(traced.length, 1);
   assert.equal(traced[0].stage, "proxy_stream_ux_recorded");
   assert.equal(traced[0].requestSavedCount, 16);
+});
+
+test("visual session snapshots can be written and listed", async () => {
+  const stateDir = `/tmp/tokenpilot-visual-${Date.now()}`;
+  const sessionId = "visual-session-1";
+
+  await hooks.appendReductionVisualSnapshot(stateDir, {
+    kind: "reduction",
+    at: "2026-06-11T12:00:00.000Z",
+    sessionId,
+    requestId: "req-1",
+    model: "tokenpilot/gpt-5.4-mini",
+    upstreamModel: "gpt-5.4-mini",
+    segmentId: "proxy-1-output",
+    itemIndex: 1,
+    field: "output",
+    toolName: "read",
+    dataPath: "/tmp/a.txt",
+    savedChars: 1200,
+    beforeText: "before reduction",
+    afterText: "after reduction",
+    report: [],
+  });
+
+  await hooks.appendEvictionVisualSnapshot(stateDir, {
+    kind: "eviction",
+    at: "2026-06-11T12:01:00.000Z",
+    sessionId,
+    taskId: "task-1",
+    taskLabel: "Draft report",
+    replacementMode: "pointer_stub",
+    beforeText: "long archived text",
+    afterText: "stub text",
+    beforeChars: 1000,
+    afterChars: 20,
+    archivePath: "/tmp/archive.json",
+    dataKey: "key-1",
+    turnAbsIds: ["t1", "t2"],
+  });
+
+  const sessions = await hooks.readVisualSessionList(stateDir);
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].sessionId, sessionId);
+  assert.equal(sessions[0].reductionCount, 1);
+  assert.equal(sessions[0].evictionCount, 1);
+
+  const data = await hooks.readVisualSessionData(stateDir, sessionId);
+  assert.equal(data.reduction.length, 1);
+  assert.equal(data.eviction.length, 1);
+  assert.equal(data.reduction[0].beforeText, "before reduction");
+  assert.equal(data.eviction[0].taskId, "task-1");
 });
 
 test("responsesPayloadToChatCompletions preserves tools and function call history", () => {

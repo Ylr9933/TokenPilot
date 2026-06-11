@@ -51,6 +51,12 @@ import {
   appendTaskStateTrace,
 } from "./trace/io.js";
 import { contextSafeRecovery as importedContextSafeRecovery, hasRecoveryMarker as importedHasRecoveryMarker } from "./context-stack/page-in-api.js";
+import {
+  appendEvictionVisualSnapshot,
+  appendReductionVisualSnapshot,
+  readVisualSessionData,
+  readVisualSessionList,
+} from "./commands/tokenpilot/session-visual-data.js";
 
 export const TEST_WORKSPACE_DIR = "/tmp/tokenpilot-openclaw-plugin-tests";
 
@@ -260,6 +266,10 @@ export const __testHooks = {
     dynamicContextTarget: args.dynamicContextTarget ?? "developer",
   }),
   recordStreamingUxEffect,
+  appendReductionVisualSnapshot,
+  appendEvictionVisualSnapshot,
+  readVisualSessionData,
+  readVisualSessionList,
 };
 
 export { contextSafeRecovery, hasRecoveryMarker };

@@ -1,4 +1,5 @@
 import { handleReport } from "./tokenpilot/session-report.js";
+import { handleVisual } from "./tokenpilot/session-visual.js";
 import {
   formatTokenPilotHelp,
   summarizeEvictionStatus,
@@ -266,6 +267,10 @@ export function registerTokenPilotCommand(api: any, logger: { debug?: (...args: 
 
     if (action === "report") {
       return handleReport(ctx, currentConfig);
+    }
+
+    if (action === "visual") {
+      return handleVisual(currentConfig);
     }
 
     if (action === "settings") {

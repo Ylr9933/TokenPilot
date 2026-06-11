@@ -40,6 +40,36 @@ const hooks = plugin.__testHooks as {
   normalizeConfig: (raw: unknown) => any;
   responsesPayloadToChatCompletions: (payload: any) => any;
   chatCompletionsToResponsesText: (raw: string) => string;
+  prepareProxyRequest: (args: {
+    cfg: any;
+    logger?: any;
+    payload: any;
+    upstream?: any;
+    resolveSessionIdForPayload?: ((payload: any) => string | undefined) | undefined;
+    policyModule?: any;
+    reductionPassOptions?: any;
+    dynamicContextTarget?: "user" | "developer";
+  }) => Promise<{
+    reductionApplied: {
+      diagnostics?: {
+        skippedReason?: string;
+      };
+    };
+  }>;
+  recordStreamingUxEffect: (params: {
+    cfg: any;
+    helpers: any;
+    logger: any;
+    model: string;
+    upstreamModel: string;
+    resolvedSessionId: string;
+    originalInputText: string;
+    afterReductionInputText: string;
+    beforeReductionCanonicalInput: string;
+    afterReductionCanonicalInput: string;
+    streamChunks: Buffer[];
+    reductionApplied?: { savedChars?: number } | null;
+  }) => Promise<void>;
 };
 
 test("applyProxyReductionToInput reduces large tool payload and preserves non-tool entries", async () => {
@@ -195,6 +225,96 @@ test("applyProxyReductionToInput still runs with policy-only before-call modules
     payload.input[1].content,
     "Successfully wrote 120 bytes to /workspace/output.md",
   );
+});
+
+test("prepareProxyRequest still runs policy before-call when reduction module is disabled", async () => {
+  const cfg = hooks.normalizeConfig({
+    modules: {
+      policy: true,
+      reduction: false,
+    },
+  });
+
+  let beforeBuildCalls = 0;
+  const policyModule = {
+    async beforeBuild(turnCtx: any) {
+      beforeBuildCalls += 1;
+      return turnCtx;
+    },
+  };
+
+  const payload: any = {
+    model: "tokenpilot/gpt-5.4-mini",
+    input: [
+      {
+        role: "tool",
+        toolName: "read",
+        path: "/workspace/spec.md",
+        content: "A".repeat(600),
+      },
+      {
+        role: "tool",
+        toolName: "write",
+        path: "/workspace/output.md",
+        content: "Successfully wrote 120 bytes to /workspace/output.md",
+      },
+    ],
+  };
+
+  const prepared = await hooks.prepareProxyRequest({
+    cfg,
+    payload,
+    policyModule,
+    resolveSessionIdForPayload: () => "session-policy-only",
+  });
+
+  assert.equal(beforeBuildCalls, 1);
+  assert.equal(String(prepared.reductionApplied.diagnostics?.skippedReason), "module_disabled");
+});
+
+test("recordStreamingUxEffect uses canonical request snapshots in char mode", async () => {
+  const recorded: any[] = [];
+  const traced: any[] = [];
+
+  await hooks.recordStreamingUxEffect({
+    cfg: { stateDir: "/tmp/tokenpilot-stream-ux-test" },
+    helpers: {
+      extractProviderResponseText: () => "stream-response",
+      contentToText: (value: unknown) => String(value ?? ""),
+      countTokensWithFallback: async (_model: string, text: string) => ({
+        count: text.length,
+        mode: "chars" as const,
+      }),
+      recordUxEffect: async (_stateDir: string, record: any) => {
+        recorded.push(record);
+      },
+      appendTaskStateTrace: async (_stateDir: string, payload: any) => {
+        traced.push(payload);
+      },
+    },
+    logger: {
+      warn: () => undefined,
+    },
+    model: "tokenpilot/gpt-5.4-mini",
+    upstreamModel: "gpt-5.4-mini",
+    resolvedSessionId: "stream-session-1",
+    originalInputText: "same",
+    afterReductionInputText: "same",
+    beforeReductionCanonicalInput: "01234567890123456789",
+    afterReductionCanonicalInput: "0123",
+    streamChunks: [Buffer.from("data: dummy\n\n")],
+    reductionApplied: { savedChars: 999 },
+  });
+
+  assert.equal(recorded.length, 1);
+  assert.equal(recorded[0].countMode, "chars");
+  assert.equal(recorded[0].savedCount, 16);
+  assert.equal(recorded[0].details?.requestSavedCount, 16);
+  assert.equal(recorded[0].details?.responseSavedCount, 0);
+  assert.equal(recorded[0].beforeCount, recorded[0].afterCount + 16);
+  assert.equal(traced.length, 1);
+  assert.equal(traced[0].stage, "proxy_stream_ux_recorded");
+  assert.equal(traced[0].requestSavedCount, 16);
 });
 
 test("responsesPayloadToChatCompletions preserves tools and function call history", () => {

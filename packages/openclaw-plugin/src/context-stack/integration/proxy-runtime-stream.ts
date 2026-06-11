@@ -9,7 +9,10 @@ export async function recordStreamingUxEffect(params: {
   resolvedSessionId: string;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
   streamChunks: Buffer[];
+  reductionApplied?: { savedChars?: number } | null;
 }): Promise<void> {
   const {
     cfg,
@@ -20,7 +23,10 @@ export async function recordStreamingUxEffect(params: {
     resolvedSessionId,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
     streamChunks,
+    reductionApplied,
   } = params;
   if (!cfg.stateDir || streamChunks.length === 0) return;
 
@@ -40,14 +46,20 @@ export async function recordStreamingUxEffect(params: {
       && responseCount.mode === "litellm_tokens"
         ? "litellm_tokens"
         : "chars";
-    const requestSavedCount = Math.max(0, inputBeforeCount.count - inputAfterCount.count);
+    const requestSavedCount = countMode === "chars"
+      ? Math.max(0, beforeReductionCanonicalInput.length - afterReductionCanonicalInput.length)
+      : Math.max(0, inputBeforeCount.count - inputAfterCount.count);
+    const afterCount = inputAfterCount.count + responseCount.count;
+    const beforeCount = countMode === "chars"
+      ? afterCount + requestSavedCount
+      : inputBeforeCount.count + responseCount.count;
     await helpers.recordUxEffect(cfg.stateDir, {
       at: new Date().toISOString(),
       sessionId: resolvedSessionId,
       model: model || upstreamModel || "unknown",
       countMode,
-      beforeCount: inputBeforeCount.count + responseCount.count,
-      afterCount: inputAfterCount.count + responseCount.count,
+      beforeCount,
+      afterCount,
       savedCount: requestSavedCount,
       details: {
         requestSavedCount,

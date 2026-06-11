@@ -37,6 +37,32 @@ export type UxSessionAggregate = {
   latestAt?: string;
 };
 
+function canonicalizeInputForUx(value: unknown): unknown {
+  if (value == null) return null;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (typeof value === "bigint") return value.toString();
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalizeInputForUx(item));
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const next: Record<string, unknown> = {};
+    for (const key of Object.keys(obj).sort()) {
+      if (key.startsWith("__tokenpilot_")) continue;
+      const child = obj[key];
+      if (child === undefined || typeof child === "function") continue;
+      next[key] = canonicalizeInputForUx(child);
+    }
+    return next;
+  }
+  return String(value);
+}
+
+export function serializeCanonicalInputForUx(input: unknown): string {
+  if (typeof input === "string") return input;
+  return JSON.stringify(canonicalizeInputForUx(input));
+}
+
 const TOKEN_COUNTER_SCRIPT_CANDIDATES = Array.from(new Set([
   process.env.TOKENPILOT_TOKEN_COUNTER_SCRIPT,
   // Bundled plugin runtime: dist/index.js -> ../scripts/token_counter.py

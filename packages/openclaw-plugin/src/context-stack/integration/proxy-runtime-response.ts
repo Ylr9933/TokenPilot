@@ -17,6 +17,9 @@ export async function handleStreamingProxyResponse(args: {
   proxyPureForward: boolean;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
+  reductionApplied: any;
 }): Promise<void> {
   const {
     cfg,
@@ -31,6 +34,9 @@ export async function handleStreamingProxyResponse(args: {
     proxyPureForward,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
+    reductionApplied,
   } = args;
   const upstreamStreamResp = await helpers.requestUpstreamResponsesStream(upstream, activePayload, logger, cfg.stateDir);
   if (cfg.stateDir) {
@@ -85,7 +91,10 @@ export async function handleStreamingProxyResponse(args: {
       resolvedSessionId,
       originalInputText,
       afterReductionInputText,
+      beforeReductionCanonicalInput,
+      afterReductionCanonicalInput,
       streamChunks,
+      reductionApplied,
     });
   } else if (cfg.stateDir && responseClosed && !responseFinished) {
     await helpers.appendTaskStateTrace(cfg.stateDir, {
@@ -113,6 +122,8 @@ export async function handleNonStreamingProxyResponse(args: {
   proxyPureForward: boolean;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
   reductionApplied: any;
   reductionPassOptions: any;
   reductionMaxToolChars: number;
@@ -131,6 +142,8 @@ export async function handleNonStreamingProxyResponse(args: {
     proxyPureForward,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
     reductionApplied,
     reductionPassOptions,
     reductionMaxToolChars,
@@ -204,8 +217,12 @@ export async function handleNonStreamingProxyResponse(args: {
       resolvedSessionId,
       originalInputText,
       afterReductionInputText,
+      beforeReductionCanonicalInput,
+      afterReductionCanonicalInput,
       originalResponseText,
       finalResponseText: txt,
+      reductionApplied,
+      afterCallReduction,
     });
   }
   await recordProxyForwarding({

@@ -10,6 +10,8 @@ type ProxyRequestPreparation = {
   upstreamModel: string;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
   proxyPureForward: boolean;
   reductionTriggerMinChars: number;
   reductionMaxToolChars: number;
@@ -306,6 +308,7 @@ export async function prepareProxyRequest(args: {
   }
   const beforeReductionInputCount = Array.isArray(payload?.input) ? payload.input.length : 0;
   const beforeReductionInputChars = helpers.estimatePayloadInputChars(payload?.input);
+  const beforeReductionCanonicalInput = helpers.serializeCanonicalInputForUx(payload?.input);
   const reductionApplied = await applyProxyReduction(
     cfg,
     logger,
@@ -337,6 +340,7 @@ export async function prepareProxyRequest(args: {
     });
   }
   const afterReductionInputText = helpers.extractInputText(payload?.input);
+  const afterReductionCanonicalInput = helpers.serializeCanonicalInputForUx(payload?.input);
   if (!proxyPureForward && cfg.modules.reduction) {
     payload.__tokenpilot_reduction_applied = true;
   }
@@ -367,6 +371,8 @@ export async function prepareProxyRequest(args: {
     upstreamModel,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
     proxyPureForward,
     reductionTriggerMinChars,
     reductionMaxToolChars,

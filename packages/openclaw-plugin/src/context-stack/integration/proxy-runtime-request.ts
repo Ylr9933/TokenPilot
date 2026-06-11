@@ -10,6 +10,8 @@ type ProxyRequestPreparation = {
   upstreamModel: string;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
   proxyPureForward: boolean;
   reductionTriggerMinChars: number;
   reductionMaxToolChars: number;
@@ -63,7 +65,60 @@ async function applyProxyReduction(
   reductionTriggerMinChars: number,
   reductionMaxToolChars: number,
 ): Promise<any> {
+  const runPolicyWithoutReduction = async () => {
+    if (!cfg.modules.policy || !policyModule) return;
+    const segmentAnchorByCallId =
+      cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
+        ? await helpers.loadSegmentAnchorByCallId(cfg.stateDir, resolvedSessionId, {
+          dedupeStrings: helpers.dedupeStrings,
+          syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
+            await helpers.syncRawSemanticTurnsFromTranscript(dir, sid, {
+              contentToText: helpers.contentToText,
+              contextSafeRecovery: helpers.contextSafeRecovery,
+              memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+            });
+          },
+        }).catch(() => new Map())
+        : undefined;
+    const orderedTurnAnchors =
+      cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
+        ? await helpers.loadOrderedTurnAnchors(
+          cfg.stateDir,
+          resolvedSessionId,
+          helpers.dedupeStrings,
+        ).catch(() => [])
+        : undefined;
+    const { turnCtx } = helpers.buildLayeredReductionContext(
+      payload,
+      reductionTriggerMinChars,
+      resolvedSessionId,
+      {
+        memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+        hasRecoveryMarker: helpers.hasRecoveryMarker,
+        inferObservationPayloadKind: helpers.inferObservationPayloadKind,
+      },
+      cfg.reduction.passes,
+      {
+        repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
+        tool_payload_trim: reductionPassOptions.toolPayloadTrim ?? {},
+        html_slimming: reductionPassOptions.htmlSlimming ?? {},
+        exec_output_truncation: reductionPassOptions.execOutputTruncation ?? {},
+        agents_startup_optimization: reductionPassOptions.agentsStartupOptimization ?? {},
+        format_slimming: reductionPassOptions.formatSlimming ?? {},
+        format_cleaning: reductionPassOptions.formatCleaning ?? {},
+        path_truncation: reductionPassOptions.pathTruncation ?? {},
+        image_downsample: reductionPassOptions.imageDownsample ?? {},
+        line_number_strip: reductionPassOptions.lineNumberStrip ?? {},
+      },
+      segmentAnchorByCallId,
+      orderedTurnAnchors,
+    );
+    await helpers.applyPolicyBeforeCall(turnCtx, cfg, logger, {
+      policy: policyModule,
+    });
+  };
   if (proxyPureForward || !cfg.modules.reduction) {
+    await runPolicyWithoutReduction();
     return buildReductionSkippedResult(
       payload,
       reductionTriggerMinChars,
@@ -253,6 +308,7 @@ export async function prepareProxyRequest(args: {
   }
   const beforeReductionInputCount = Array.isArray(payload?.input) ? payload.input.length : 0;
   const beforeReductionInputChars = helpers.estimatePayloadInputChars(payload?.input);
+  const beforeReductionCanonicalInput = helpers.serializeCanonicalInputForUx(payload?.input);
   const reductionApplied = await applyProxyReduction(
     cfg,
     logger,
@@ -284,6 +340,7 @@ export async function prepareProxyRequest(args: {
     });
   }
   const afterReductionInputText = helpers.extractInputText(payload?.input);
+  const afterReductionCanonicalInput = helpers.serializeCanonicalInputForUx(payload?.input);
   if (!proxyPureForward && cfg.modules.reduction) {
     payload.__tokenpilot_reduction_applied = true;
   }
@@ -314,6 +371,8 @@ export async function prepareProxyRequest(args: {
     upstreamModel,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
     proxyPureForward,
     reductionTriggerMinChars,
     reductionMaxToolChars,

@@ -125,8 +125,12 @@ export async function recordNonStreamingUxEffect(params: {
   resolvedSessionId: string;
   originalInputText: string;
   afterReductionInputText: string;
+  beforeReductionCanonicalInput: string;
+  afterReductionCanonicalInput: string;
   originalResponseText: string;
   finalResponseText: string;
+  reductionApplied?: { savedChars?: number } | null;
+  afterCallReduction?: { savedChars?: number } | null;
 }): Promise<void> {
   const {
     cfg,
@@ -136,8 +140,12 @@ export async function recordNonStreamingUxEffect(params: {
     resolvedSessionId,
     originalInputText,
     afterReductionInputText,
+    beforeReductionCanonicalInput,
+    afterReductionCanonicalInput,
     originalResponseText,
     finalResponseText,
+    reductionApplied,
+    afterCallReduction,
   } = params;
   if (!cfg.stateDir) return;
 
@@ -153,16 +161,24 @@ export async function recordNonStreamingUxEffect(params: {
     && responseAfterCount.mode === "litellm_tokens"
       ? "litellm_tokens"
       : "chars";
-  const requestSavedCount = Math.max(0, inputBeforeCount.count - inputAfterCount.count);
-  const responseSavedCount = Math.max(0, responseBeforeCount.count - responseAfterCount.count);
+  const requestSavedCount = countMode === "chars"
+    ? Math.max(0, beforeReductionCanonicalInput.length - afterReductionCanonicalInput.length)
+    : Math.max(0, inputBeforeCount.count - inputAfterCount.count);
+  const responseSavedCount = countMode === "chars"
+    ? Math.max(0, Number(afterCallReduction?.savedChars ?? (responseBeforeCount.count - responseAfterCount.count)))
+    : Math.max(0, responseBeforeCount.count - responseAfterCount.count);
   const savedCount = requestSavedCount + responseSavedCount;
+  const afterCount = inputAfterCount.count + responseAfterCount.count;
+  const beforeCount = countMode === "chars"
+    ? afterCount + savedCount
+    : inputBeforeCount.count + responseBeforeCount.count;
   await helpers.recordUxEffect(cfg.stateDir, {
     at: new Date().toISOString(),
     sessionId: resolvedSessionId,
     model: model || upstreamModel || "unknown",
     countMode,
-    beforeCount: inputBeforeCount.count + responseBeforeCount.count,
-    afterCount: inputAfterCount.count + responseAfterCount.count,
+    beforeCount,
+    afterCount,
     savedCount,
     details: {
       requestSavedCount,

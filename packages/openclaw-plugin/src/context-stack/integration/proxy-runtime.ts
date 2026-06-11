@@ -69,6 +69,9 @@ export async function startEmbeddedResponsesProxy(
           proxyPureForward: prepared.proxyPureForward,
           originalInputText: prepared.originalInputText,
           afterReductionInputText: prepared.afterReductionInputText,
+          beforeReductionCanonicalInput: prepared.beforeReductionCanonicalInput,
+          afterReductionCanonicalInput: prepared.afterReductionCanonicalInput,
+          reductionApplied: prepared.reductionApplied,
         });
         return;
       }
@@ -85,6 +88,8 @@ export async function startEmbeddedResponsesProxy(
         proxyPureForward: prepared.proxyPureForward,
         originalInputText: prepared.originalInputText,
         afterReductionInputText: prepared.afterReductionInputText,
+        beforeReductionCanonicalInput: prepared.beforeReductionCanonicalInput,
+        afterReductionCanonicalInput: prepared.afterReductionCanonicalInput,
         reductionApplied: prepared.reductionApplied,
         reductionPassOptions: prepared.reductionPassOptions,
         reductionMaxToolChars: prepared.reductionMaxToolChars,

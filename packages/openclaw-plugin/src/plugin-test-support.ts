@@ -39,7 +39,9 @@ import { requestUpstreamResponses, requestUpstreamResponsesStream } from "./cont
 import { responsesPayloadToChatCompletions, chatCompletionsToResponsesText } from "./context-stack/integration/upstream-adapter.js";
 import { isSseContentType } from "./context-stack/integration/upstream-sse.js";
 import { normalizeConfig } from "./context-stack/integration/config-normalize.js";
-import { countTokensWithFallback, recordUxEffect } from "./context-stack/integration/ux-effects.js";
+import { prepareProxyRequest } from "./context-stack/integration/proxy-runtime-request.js";
+import { recordStreamingUxEffect } from "./context-stack/integration/proxy-runtime-stream.js";
+import { countTokensWithFallback, recordUxEffect, serializeCanonicalInputForUx } from "./context-stack/integration/ux-effects.js";
 import { isReductionPassEnabled } from "@tokenpilot/runtime-core";
 import { loadOrderedTurnAnchors, loadSegmentAnchorByCallId } from "@tokenpilot/history";
 import {
@@ -100,6 +102,7 @@ export const proxyRuntimeHelpers = {
   isSseContentType,
   countTokensWithFallback,
   recordUxEffect,
+  serializeCanonicalInputForUx,
 };
 
 const defaultBeforeCallTestHelpers = {
@@ -229,6 +232,34 @@ export const __testHooks = {
   normalizeConfig,
   responsesPayloadToChatCompletions,
   chatCompletionsToResponsesText,
+  prepareProxyRequest: (args: {
+    cfg: any;
+    logger?: any;
+    payload: any;
+    upstream?: any;
+    resolveSessionIdForPayload?: ((payload: any) => string | undefined) | undefined;
+    policyModule?: any;
+    reductionPassOptions?: any;
+    dynamicContextTarget?: "user" | "developer";
+  }) => prepareProxyRequest({
+    cfg: {
+      stateDir: TEST_WORKSPACE_DIR,
+      ...(args.cfg ?? {}),
+    },
+    logger: args.logger ?? makeLogger(),
+    helpers: proxyRuntimeHelpers,
+    payload: args.payload,
+    upstream: args.upstream ?? {
+      providerId: "test-upstream",
+      baseUrl: "http://127.0.0.1:9999/v1",
+      models: [{ id: "gpt-5.4-mini" }],
+    },
+    resolveSessionIdForPayload: args.resolveSessionIdForPayload,
+    policyModule: args.policyModule,
+    reductionPassOptions: args.reductionPassOptions ?? {},
+    dynamicContextTarget: args.dynamicContextTarget ?? "developer",
+  }),
+  recordStreamingUxEffect,
 };
 
 export { contextSafeRecovery, hasRecoveryMarker };

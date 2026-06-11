@@ -237,6 +237,28 @@ if post_install:
 if isinstance(entries, dict) and not entries:
     plugins.pop("entries", None)
 
+tools = cfg.get("tools")
+if not isinstance(tools, dict):
+    tools = {}
+    cfg["tools"] = tools
+
+profile = tools.get("profile")
+if not isinstance(profile, str) or not profile.strip():
+    tools["profile"] = "coding"
+
+allow = tools.get("allow")
+also_allow = tools.get("alsoAllow")
+if isinstance(allow, list):
+    if "memory_fault_recover" not in allow:
+        allow.append("memory_fault_recover")
+        tools["allow"] = allow
+elif isinstance(also_allow, list):
+    if "memory_fault_recover" not in also_allow:
+        also_allow.append("memory_fault_recover")
+        tools["alsoAllow"] = also_allow
+else:
+    tools["alsoAllow"] = ["memory_fault_recover"]
+
 with open(config_path, "w", encoding="utf-8") as f:
     json.dump(cfg, f, indent=2, ensure_ascii=False)
     f.write("\n")

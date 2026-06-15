@@ -338,3 +338,36 @@ export function findDeveloperAndPrimaryUser(input: any): {
   const userItem = userIndex >= 0 ? input[userIndex] : null;
   return { developerText, developerIndex, developerItem, userIndex, userItem };
 }
+
+export function findRootPromptCandidate(input: any): {
+  role: "developer" | "system";
+  index: number;
+  item: any;
+  text: string;
+} | null {
+  if (!Array.isArray(input) || input.length === 0) return null;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const item = input[i];
+    if (!item || typeof item !== "object" || String((item as any).role) !== "developer") continue;
+    const text =
+      typeof (item as any).content === "string"
+        ? String((item as any).content)
+        : extractInputText([item]);
+    if (!text.trim()) continue;
+    return { role: "developer", index: i, item, text };
+  }
+
+  for (let i = 0; i < input.length; i += 1) {
+    const item = input[i];
+    if (!item || typeof item !== "object" || String((item as any).role) !== "system") continue;
+    const text =
+      typeof (item as any).content === "string"
+        ? String((item as any).content)
+        : extractInputText([item]);
+    if (!text.trim()) continue;
+    return { role: "system", index: i, item, text };
+  }
+
+  return null;
+}

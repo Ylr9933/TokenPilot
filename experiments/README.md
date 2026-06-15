@@ -1,40 +1,124 @@
 # Experiments
 
-This directory is the future home for benchmark and evaluation assets that are
-currently maintained in the separate benchmark harness repository.
+This directory contains the benchmark adapters and reproduction entrypoints for
+the current LightMem2 runtime path.
 
-Planned migration targets include:
+If you want to reproduce the reported runtime behavior rather than just install
+the plugin, start here.
 
-- `dataset/`
-- `scripts/`
-- `results/`
-- `save/`
+## What lives here
 
-Current rule:
+The public experiment surface is organized by benchmark:
 
-- keep the live benchmark harness in the separate repository until path
-  assumptions and runtime setup have been revalidated under the `TokenPilot`
-  brand
-- treat this directory as a structural placeholder, not an active benchmark
-  entrypoint
+- [`pinchbench/`](./pinchbench/README.md)
+  - LightMem2 runtime baseline/method runners for PinchBench
+  - isolated and continuous session modes
+- [`claw-eval/`](./claw-eval/README.md)
+  - LightMem2 OpenClaw runtime adapter for Claw-Eval
+  - isolated and continuous execution paths
 
-## Active Consolidation Target
+Each benchmark subtree owns its own:
 
-The first active consolidation target is:
+- dataset assets
+- benchmark-specific scripts
+- environment notes
+- benchmark README
 
-- `experiments/pinchbench/`
+## Before you reproduce anything
 
-That subtree is where the PinchBench-only migration will land first, with the
-scope intentionally reduced to:
+Complete the root-level runtime setup first:
 
-- dataset: `PinchBench`
-- settings: `isolated` and `continuous`
-- method path only
+1. follow the installation instructions in the repository [README.md](../README.md)
+2. make sure `openclaw` is already runnable in your shell
+3. confirm that the current TokenPilot runtime component is installed and usable
+4. verify that a `tokenpilot/<model>` route can answer in a real session
 
-Baseline cleanup and the other datasets are intentionally deferred.
+The benchmark directories assume the runtime path is already working.
 
-The current planning docs for that subtree are:
+## Recommended workflow
 
-- `experiments/pinchbench/docs/runtime-profile.md`
-- `experiments/pinchbench/docs/migration-scope.md`
-- `experiments/pinchbench/docs/layout-plan.md`
+1. Choose the benchmark you want to reproduce.
+2. Open the benchmark-specific README.
+3. Prepare any benchmark-only assets that are intentionally not committed.
+4. Run the official baseline or method runner from that subtree.
+
+The canonical public entrypoints are:
+
+- `experiments/pinchbench/scripts/run_baseline.sh`
+- `experiments/pinchbench/scripts/run_method.sh`
+- `experiments/claw-eval/scripts/run_baseline.sh`
+- `experiments/claw-eval/scripts/run_method.sh`
+
+## Benchmark index
+
+### PinchBench
+
+See:
+
+- [experiments/pinchbench/README.md](./pinchbench/README.md)
+
+What it currently covers:
+
+- `PinchBench`
+- `isolated` mode
+- `continuous` mode
+- baseline runs
+- method runs through the TokenPilot component
+
+Minimal examples:
+
+```bash
+cd /path/to/LightMem2
+bash experiments/pinchbench/scripts/run_baseline.sh \
+  --suite automated-only \
+  --session-mode isolated \
+  --model gpt-5.4-mini
+```
+
+```bash
+cd /path/to/LightMem2
+bash experiments/pinchbench/scripts/run_method.sh \
+  --suite automated-only \
+  --session-mode continuous \
+  --model tokenpilot/gpt-5.4-mini
+```
+
+### Claw-Eval
+
+See:
+
+- [experiments/claw-eval/README.md](./claw-eval/README.md)
+
+What it currently covers:
+
+- `claw-eval` task execution through the repo-internal LightMem2 OpenClaw runtime adapter
+- isolated and continuous paths
+- vendored upstream runtime glue
+
+Minimal examples:
+
+```bash
+cd /path/to/LightMem2
+bash experiments/claw-eval/scripts/run_baseline.sh \
+  --scope suite \
+  --suite T001zh_email_triage \
+  --session-mode isolated \
+  --model gpt-5.4-mini
+```
+
+```bash
+cd /path/to/LightMem2
+bash experiments/claw-eval/scripts/run_method.sh \
+  --scope suite \
+  --suite T001zh_email_triage \
+  --session-mode isolated \
+  --profile reduction \
+  --model tokenpilot/gpt-5.4-mini
+```
+
+## Notes
+
+- The root README gives the public project overview.
+- This directory is the top-level entry for experiment reproduction.
+- Exact benchmark commands, asset requirements, and pitfalls are documented in
+  each benchmark subtree, not duplicated here in full.

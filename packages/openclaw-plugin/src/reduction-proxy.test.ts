@@ -55,6 +55,8 @@ const hooks = plugin.__testHooks as {
         skippedReason?: string;
       };
     };
+    developerCanonicalText?: string;
+    developerForwardedText?: string;
   }>;
   recordStreamingUxEffect: (params: {
     cfg: any;
@@ -70,6 +72,7 @@ const hooks = plugin.__testHooks as {
     streamChunks: Buffer[];
     reductionApplied?: { savedChars?: number } | null;
   }) => Promise<void>;
+  appendStabilityVisualSnapshot: (stateDir: string, snapshot: any) => Promise<void>;
   appendReductionVisualSnapshot: (stateDir: string, snapshot: any) => Promise<void>;
   appendEvictionVisualSnapshot: (stateDir: string, snapshot: any) => Promise<void>;
   readVisualSessionData: (stateDir: string, sessionId: string) => Promise<any>;
@@ -276,6 +279,38 @@ test("prepareProxyRequest still runs policy before-call when reduction module is
   assert.equal(String(prepared.reductionApplied.diagnostics?.skippedReason), "module_disabled");
 });
 
+test("prepareProxyRequest falls back to system root prompt for stability view", async () => {
+  const cfg = hooks.normalizeConfig({
+    modules: {
+      policy: false,
+      reduction: false,
+    },
+  });
+
+  const payload: any = {
+    model: "tokenpilot/gpt-5.4-mini",
+    input: [
+      {
+        role: "system",
+        content: "Runtime: agent=test-agent | host=demo\nYour working directory is: /tmp/demo\n\nSystem root prompt body",
+      },
+      {
+        role: "user",
+        content: "hello",
+      },
+    ],
+  };
+
+  const prepared = await hooks.prepareProxyRequest({
+    cfg,
+    payload,
+    resolveSessionIdForPayload: () => "session-system-root",
+  });
+
+  assert.match(String(prepared.developerCanonicalText), /<WORKDIR>/);
+  assert.match(String(prepared.developerForwardedText), /System root prompt body/);
+});
+
 test("recordStreamingUxEffect uses canonical request snapshots in char mode", async () => {
   const recorded: any[] = [];
   const traced: any[] = [];
@@ -325,6 +360,25 @@ test("visual session snapshots can be written and listed", async () => {
   const stateDir = `/tmp/tokenpilot-visual-${Date.now()}`;
   const sessionId = "visual-session-1";
 
+  await hooks.appendStabilityVisualSnapshot(stateDir, {
+    kind: "stability",
+    at: "2026-06-11T11:59:00.000Z",
+    sessionId,
+    model: "tokenpilot/gpt-5.4-mini",
+    upstreamModel: "gpt-5.4-mini",
+    promptCacheKeyBefore: "raw-key",
+    promptCacheKeyAfter: "stable-key",
+    dynamicContextTarget: "developer",
+    userContentRewrites: 1,
+    senderMetadataBlocksBefore: 2,
+    senderMetadataBlocksAfter: 0,
+    developerBefore: "raw developer prompt",
+    developerCanonical: "canonical prompt",
+    developerForwarded: "forwarded prompt",
+    dynamicContextText: "WORKDIR: /tmp/demo",
+    firstTurnCandidate: true,
+  });
+
   await hooks.appendReductionVisualSnapshot(stateDir, {
     kind: "reduction",
     at: "2026-06-11T12:00:00.000Z",
@@ -362,12 +416,15 @@ test("visual session snapshots can be written and listed", async () => {
   const sessions = await hooks.readVisualSessionList(stateDir);
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].sessionId, sessionId);
+  assert.equal(sessions[0].stabilityCount, 1);
   assert.equal(sessions[0].reductionCount, 1);
   assert.equal(sessions[0].evictionCount, 1);
 
   const data = await hooks.readVisualSessionData(stateDir, sessionId);
+  assert.equal(data.stability.length, 1);
   assert.equal(data.reduction.length, 1);
   assert.equal(data.eviction.length, 1);
+  assert.equal(data.stability[0].promptCacheKeyAfter, "stable-key");
   assert.equal(data.reduction[0].beforeText, "before reduction");
   assert.equal(data.eviction[0].taskId, "task-1");
 });

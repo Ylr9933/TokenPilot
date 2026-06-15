@@ -1,14 +1,14 @@
 # PinchBench Experiments
 
-This directory is the future home for the PinchBench experiment harness inside
-the main repository.
+This directory contains the PinchBench experiment harness for the current
+LightMem2 runtime path.
 
 At the current stage, the migration scope is intentionally narrow:
 
 - dataset: `PinchBench` only
 - settings: `isolated` and `continuous`
 - active paths:
-  - current plugin-enabled method runs
+  - current LightMem2 method runs through the TokenPilot component
   - single-agent baseline runs
 
 Out of scope for the first consolidation pass:
@@ -18,6 +18,9 @@ Out of scope for the first consolidation pass:
 - `FrontierScience`
 - multi-agent / MAS variants
 - legacy wrapper scripts that were only used for old ablations
+
+This subtree documents the benchmark surface for the current public LightMem2
+runtime release, where TokenPilot is the active context-management component.
 
 The migration is now in an intermediate state:
 
@@ -58,7 +61,7 @@ These are the canonical entrypoints for open-source use.
 Minimal isolated baseline run:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/pinchbench/scripts/run_baseline.sh \
   --suite automated-only \
   --session-mode isolated \
@@ -70,7 +73,7 @@ bash experiments/pinchbench/scripts/run_baseline.sh \
 Minimal isolated method run:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/pinchbench/scripts/run_method.sh \
   --suite automated-only \
   --session-mode isolated \
@@ -80,7 +83,7 @@ bash experiments/pinchbench/scripts/run_method.sh \
 Continuous method run:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/pinchbench/scripts/run_method.sh \
   --suite automated-only \
   --session-mode continuous \

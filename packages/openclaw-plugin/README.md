@@ -1,6 +1,7 @@
 # TokenPilot OpenClaw Adapter
 
-This package contains the live OpenClaw adapter runtime used by TokenPilot.
+This package contains the live OpenClaw adapter runtime for the current LightMem2 OpenClaw path.
+Within the broader LightMem2 framework, this package is the runtime adapter layer used by the TokenPilot component.
 
 Current runtime responsibilities:
 
@@ -24,7 +25,7 @@ cd /path/to/tokenpilot/packages/openclaw-plugin
 npm run install:release
 ```
 
-This installs the packaged plugin into:
+This installs the packaged TokenPilot runtime component into:
 
 ```text
 ~/.openclaw/extensions/tokenpilot
@@ -52,7 +53,7 @@ corepack pnpm typecheck
 
 ## Runtime Model Prefix
 
-When the plugin is active, it registers an explicit provider namespace:
+When the current TokenPilot component is active, it registers an explicit provider namespace:
 
 ```text
 tokenpilot/<model>
@@ -66,7 +67,7 @@ tokenpilot/gpt-5.4-mini
 
 ## Runtime State
 
-Default state directory now prefers:
+The current component state directory prefers:
 
 ```text
 $HOME/.openclaw/tokenpilot-plugin-state/tokenpilot/

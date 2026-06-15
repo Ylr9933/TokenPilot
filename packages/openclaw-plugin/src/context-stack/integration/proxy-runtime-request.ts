@@ -3,6 +3,7 @@ import { injectProceduralMemoryHints } from "./procedural-memory.js";
 import type { UpstreamConfig } from "./upstream.js";
 import { normalizeResponsesInputForUpstream } from "./proxy-runtime-shared.js";
 import { recordProxyInbound } from "./proxy-runtime-logging.js";
+import { appendStabilityVisualSnapshot } from "../../commands/tokenpilot/session-visual-data.js";
 
 type ProxyRequestPreparation = {
   payload: any;
@@ -240,12 +241,13 @@ export async function prepareProxyRequest(args: {
   }
   const instructions = helpers.normalizeText(String(payload?.instructions ?? ""));
   const devAndUser = !proxyPureForward ? helpers.findDeveloperAndPrimaryUser(payload?.input) : null;
+  const rootPromptCandidate = !proxyPureForward ? helpers.findRootPromptCandidate(payload?.input) : null;
   const firstTurnCandidate = Boolean(devAndUser);
-  const rootPromptRewrite = devAndUser && !proxyPureForward
-    ? helpers.rewriteRootPromptForStablePrefix(devAndUser.developerText)
+  const rootPromptRewrite = rootPromptCandidate && !proxyPureForward
+    ? helpers.rewriteRootPromptForStablePrefix(rootPromptCandidate.text)
     : null;
-  const developerCanonicalText = helpers.normalizeText(rootPromptRewrite?.canonicalPromptText ?? devAndUser?.developerText ?? "");
-  const developerForwardedText = helpers.normalizeText(rootPromptRewrite?.forwardedPromptText ?? devAndUser?.developerText ?? "");
+  const developerCanonicalText = String(rootPromptRewrite?.canonicalPromptText ?? rootPromptCandidate?.text ?? "");
+  const developerForwardedText = String(rootPromptRewrite?.forwardedPromptText ?? rootPromptCandidate?.text ?? "");
   const originalPromptCacheKey = typeof payload?.prompt_cache_key === "string" && payload.prompt_cache_key.trim().length > 0
     ? String(payload.prompt_cache_key)
     : "";
@@ -304,6 +306,24 @@ export async function prepareProxyRequest(args: {
       senderMetadataBlocksAfter: stableRewrite.senderMetadataBlocksAfter,
       proceduralMemoryInjected: memoryInjection.injected,
       proceduralMemoryHitCount: memoryInjection.hitCount,
+    });
+    await appendStabilityVisualSnapshot(cfg.stateDir, {
+      kind: "stability",
+      at: new Date().toISOString(),
+      sessionId: resolvedSessionId,
+      model,
+      upstreamModel,
+      promptCacheKeyBefore: originalPromptCacheKey,
+      promptCacheKeyAfter: stableRewrite.promptCacheKey,
+      dynamicContextTarget,
+      userContentRewrites: Number(stableRewrite.userContentRewrites ?? 0),
+      senderMetadataBlocksBefore: Number(stableRewrite.senderMetadataBlocksBefore ?? 0),
+      senderMetadataBlocksAfter: Number(stableRewrite.senderMetadataBlocksAfter ?? 0),
+      developerBefore: String(rootPromptCandidate?.text ?? ""),
+      developerCanonical: developerCanonicalText,
+      developerForwarded: developerForwardedText,
+      dynamicContextText: String(rootPromptRewrite?.dynamicContextText ?? ""),
+      firstTurnCandidate,
     });
   }
   const beforeReductionInputCount = Array.isArray(payload?.input) ? payload.input.length : 0;

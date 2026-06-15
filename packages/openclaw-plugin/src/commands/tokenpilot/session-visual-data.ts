@@ -1,6 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { basename } from "node:path";
-import { pluginStateSubdirCandidates, pluginStateSubdirWriteTargets } from "@tokenpilot/runtime-core";
+import { basename, join } from "node:path";
 import { appendJsonl } from "../../trace/io.js";
 
 export type ReductionVisualSnapshot = {
@@ -33,6 +32,25 @@ export type ReductionVisualSnapshot = {
   }>;
 };
 
+export type StabilityVisualSnapshot = {
+  kind: "stability";
+  at: string;
+  sessionId: string;
+  model: string;
+  upstreamModel: string;
+  promptCacheKeyBefore: string;
+  promptCacheKeyAfter: string;
+  dynamicContextTarget: "developer" | "user";
+  userContentRewrites: number;
+  senderMetadataBlocksBefore: number;
+  senderMetadataBlocksAfter: number;
+  developerBefore: string;
+  developerCanonical: string;
+  developerForwarded: string;
+  dynamicContextText?: string;
+  firstTurnCandidate: boolean;
+};
+
 export type EvictionVisualSnapshot = {
   kind: "eviction";
   at: string;
@@ -51,6 +69,7 @@ export type EvictionVisualSnapshot = {
 
 export type VisualSessionSummary = {
   sessionId: string;
+  stabilityCount: number;
   reductionCount: number;
   evictionCount: number;
   lastAt: string;
@@ -58,6 +77,7 @@ export type VisualSessionSummary = {
 
 export type VisualSessionData = {
   sessionId: string;
+  stability: StabilityVisualSnapshot[];
   reduction: ReductionVisualSnapshot[];
   eviction: EvictionVisualSnapshot[];
 };
@@ -66,15 +86,23 @@ function encodeSessionId(sessionId: string): string {
   return encodeURIComponent(String(sessionId || "").trim() || "session");
 }
 
-function snapshotWriteTargets(stateDir: string, kind: "reduction" | "eviction", sessionId: string): string[] {
+function pluginStateSubdirCandidates(stateDir: string, ...parts: string[]): string[] {
+  return [join(stateDir.trim(), "tokenpilot", ...parts)];
+}
+
+function pluginStateSubdirWriteTargets(stateDir: string, ...parts: string[]): string[] {
+  return [join(stateDir.trim(), "tokenpilot", ...parts)];
+}
+
+function snapshotWriteTargets(stateDir: string, kind: "stability" | "reduction" | "eviction", sessionId: string): string[] {
   return pluginStateSubdirWriteTargets(stateDir, "visual", kind, `${encodeSessionId(sessionId)}.jsonl`);
 }
 
-function snapshotCandidates(stateDir: string, kind: "reduction" | "eviction", sessionId: string): string[] {
+function snapshotCandidates(stateDir: string, kind: "stability" | "reduction" | "eviction", sessionId: string): string[] {
   return pluginStateSubdirCandidates(stateDir, "visual", kind, `${encodeSessionId(sessionId)}.jsonl`);
 }
 
-function snapshotDirCandidates(stateDir: string, kind: "reduction" | "eviction"): string[] {
+function snapshotDirCandidates(stateDir: string, kind: "stability" | "reduction" | "eviction"): string[] {
   return pluginStateSubdirCandidates(stateDir, "visual", kind);
 }
 
@@ -112,7 +140,7 @@ async function readSnapshotFile<T>(paths: string[]): Promise<T[]> {
   return [];
 }
 
-async function listSnapshotFiles(stateDir: string, kind: "reduction" | "eviction"): Promise<string[]> {
+async function listSnapshotFiles(stateDir: string, kind: "stability" | "reduction" | "eviction"): Promise<string[]> {
   for (const dir of snapshotDirCandidates(stateDir, kind)) {
     try {
       const entries = await readdir(dir, { withFileTypes: true });
@@ -134,6 +162,13 @@ export async function appendReductionVisualSnapshot(stateDir: string, snapshot: 
   }
 }
 
+export async function appendStabilityVisualSnapshot(stateDir: string, snapshot: StabilityVisualSnapshot): Promise<void> {
+  if (!snapshot.sessionId) return;
+  for (const path of snapshotWriteTargets(stateDir, "stability", snapshot.sessionId)) {
+    await appendJsonl(path, snapshot);
+  }
+}
+
 export async function appendEvictionVisualSnapshot(stateDir: string, snapshot: EvictionVisualSnapshot): Promise<void> {
   if (!snapshot.sessionId || !snapshot.taskId) return;
   for (const path of snapshotWriteTargets(stateDir, "eviction", snapshot.sessionId)) {
@@ -142,29 +177,39 @@ export async function appendEvictionVisualSnapshot(stateDir: string, snapshot: E
 }
 
 export async function readVisualSessionData(stateDir: string, sessionId: string): Promise<VisualSessionData> {
+  const stability = sortByAtDesc(await readSnapshotFile<StabilityVisualSnapshot>(snapshotCandidates(stateDir, "stability", sessionId)));
   const reduction = sortByAtDesc(await readSnapshotFile<ReductionVisualSnapshot>(snapshotCandidates(stateDir, "reduction", sessionId)));
   const eviction = sortByAtDesc(await readSnapshotFile<EvictionVisualSnapshot>(snapshotCandidates(stateDir, "eviction", sessionId)));
   return {
     sessionId,
+    stability,
     reduction,
     eviction,
   };
 }
 
 export async function readVisualSessionList(stateDir: string): Promise<VisualSessionSummary[]> {
+  const stabilityFiles = await listSnapshotFiles(stateDir, "stability");
   const reductionFiles = await listSnapshotFiles(stateDir, "reduction");
   const evictionFiles = await listSnapshotFiles(stateDir, "eviction");
   const summaryBySessionId = new Map<string, VisualSessionSummary>();
 
-  const mergeCount = async (kind: "reduction" | "eviction", fileName: string) => {
+  const mergeCount = async (kind: "stability" | "reduction" | "eviction", fileName: string) => {
     const sessionId = decodeURIComponent(basename(fileName, ".jsonl"));
     const summary = summaryBySessionId.get(sessionId) ?? {
       sessionId,
+      stabilityCount: 0,
       reductionCount: 0,
       evictionCount: 0,
       lastAt: "",
     };
-    if (kind === "reduction") {
+    if (kind === "stability") {
+      const snapshots = await readSnapshotFile<StabilityVisualSnapshot>(snapshotCandidates(stateDir, "stability", sessionId));
+      if (snapshots.length === 0) return;
+      summary.stabilityCount = snapshots.length;
+      const latestAt = latestAtOf(snapshots);
+      if (latestAt > summary.lastAt) summary.lastAt = latestAt;
+    } else if (kind === "reduction") {
       const snapshots = await readSnapshotFile<ReductionVisualSnapshot>(snapshotCandidates(stateDir, "reduction", sessionId));
       if (snapshots.length === 0) return;
       summary.reductionCount = snapshots.length;
@@ -180,6 +225,9 @@ export async function readVisualSessionList(stateDir: string): Promise<VisualSes
     summaryBySessionId.set(sessionId, summary);
   };
 
+  for (const fileName of stabilityFiles) {
+    await mergeCount("stability", fileName);
+  }
   for (const fileName of reductionFiles) {
     await mergeCount("reduction", fileName);
   }

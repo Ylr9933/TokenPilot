@@ -2,7 +2,7 @@
     "name": "tokenpilot",
     "private": true,
     "version": "0.1.0",
-    "description": "TokenPilot: Lightweight and Efficient Context Management for Lifelong Agents",
+    "description": "LightMem2: a modular framework for long-running agent memory and context management, with TokenPilot as the current OpenClaw runtime component",
     "scripts": {
         "build": "pnpm -r build",
         "typecheck": "pnpm -r typecheck",

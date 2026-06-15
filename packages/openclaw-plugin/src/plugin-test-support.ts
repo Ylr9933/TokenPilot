@@ -4,6 +4,7 @@ import {
   estimatePayloadInputChars,
   extractInputText,
   findDeveloperAndPrimaryUser,
+  findRootPromptCandidate,
   normalizeText,
   rewritePayloadForStablePrefix,
 } from "./context-stack/request-preprocessing/stable-prefix.js";
@@ -54,6 +55,7 @@ import { contextSafeRecovery as importedContextSafeRecovery, hasRecoveryMarker a
 import {
   appendEvictionVisualSnapshot,
   appendReductionVisualSnapshot,
+  appendStabilityVisualSnapshot,
   readVisualSessionData,
   readVisualSessionList,
 } from "./commands/tokenpilot/session-visual-data.js";
@@ -76,6 +78,7 @@ export const proxyRuntimeHelpers = {
   injectMemoryFaultProtocolInstructions,
   normalizeText,
   findDeveloperAndPrimaryUser,
+  findRootPromptCandidate,
   rewriteRootPromptForStablePrefix,
   prependTextToContent,
   rewritePayloadForStablePrefix,
@@ -266,6 +269,7 @@ export const __testHooks = {
     dynamicContextTarget: args.dynamicContextTarget ?? "developer",
   }),
   recordStreamingUxEffect,
+  appendStabilityVisualSnapshot,
   appendReductionVisualSnapshot,
   appendEvictionVisualSnapshot,
   readVisualSessionData,

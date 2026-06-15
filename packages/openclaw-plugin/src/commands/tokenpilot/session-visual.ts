@@ -1,10 +1,19 @@
 import { createServer, type Server } from "node:http";
-import { defaultPluginStateDir } from "@tokenpilot/runtime-core";
+import { join } from "node:path";
 import { readVisualSessionData, readVisualSessionList } from "./session-visual-data.js";
-import { renderVisualPageHtml } from "./session-visual-page.js";
+import { renderVisualPageHtml, renderVisualPageScript } from "./session-visual-page.js";
 import { resolveStateDir } from "./shared.js";
 
 let visualServerState: { stateDir: string; server: Server; url: string } | null = null;
+
+function defaultPluginStateDir(): string {
+  const envStateDir = process.env.TOKENPILOT_STATE_DIR;
+  if (typeof envStateDir === "string" && envStateDir.trim().length > 0) {
+    return envStateDir.trim();
+  }
+  const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
+  return join(homeDir, ".openclaw", "tokenpilot-plugin-state");
+}
 
 function sendJson(res: any, statusCode: number, payload: unknown): void {
   res.statusCode = statusCode;
@@ -18,12 +27,22 @@ function sendHtml(res: any, html: string): void {
   res.end(html);
 }
 
+function sendJs(res: any, script: string): void {
+  res.statusCode = 200;
+  res.setHeader("content-type", "application/javascript; charset=utf-8");
+  res.end(script);
+}
+
 async function createVisualServer(stateDir: string): Promise<{ stateDir: string; server: Server; url: string }> {
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       if (url.pathname === "/") {
         sendHtml(res, renderVisualPageHtml());
+        return;
+      }
+      if (url.pathname === "/app.js") {
+        sendJs(res, renderVisualPageScript());
         return;
       }
       if (url.pathname === "/api/sessions") {

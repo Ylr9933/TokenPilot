@@ -1,10 +1,11 @@
 # Claw-Eval Adapter
 
-This directory contains the TokenPilot/OpenClaw execution adapter for the `claw-eval` benchmark.
+This directory contains the OpenClaw execution adapter for the current
+LightMem2 runtime path on the `claw-eval` benchmark.
 
 The current layout is designed to be mostly self-contained inside this repo:
 
-- `scripts/`: TokenPilot adapter entrypoints and runtime glue
+- `scripts/`: runtime adapter entrypoints and execution glue
 - `dataset/tasks/`: local task source of truth
 - `dataset/general/`: flat `general` asset bundle location
 - `vendor/claw_eval_src/`: vendored upstream `claw_eval` Python package
@@ -56,7 +57,7 @@ These are the canonical entrypoints for open-source use.
 Minimal isolated baseline smoke:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/claw-eval/scripts/run_baseline.sh \
   --scope suite \
   --suite T001zh_email_triage \
@@ -67,7 +68,7 @@ bash experiments/claw-eval/scripts/run_baseline.sh \
 Run all `general` tasks in isolated baseline mode:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/claw-eval/scripts/run_baseline.sh \
   --scope general \
   --session-mode isolated \
@@ -79,7 +80,7 @@ bash experiments/claw-eval/scripts/run_baseline.sh \
 Minimal isolated method smoke:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/claw-eval/scripts/run_method.sh \
   --scope suite \
   --suite T001zh_email_triage \
@@ -91,7 +92,7 @@ bash experiments/claw-eval/scripts/run_method.sh \
 Run all `general` categories in continuous method mode:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/claw-eval/scripts/run_method.sh \
   --scope general \
   --session-mode continuous \
@@ -104,7 +105,7 @@ If your primary OpenClaw config is read-only or you want run-local isolation,
 add `--tmp-openclaw`:
 
 ```bash
-cd /path/to/TokenPilot
+cd /path/to/LightMem2
 bash experiments/claw-eval/scripts/run_method.sh \
   --scope general \
   --session-mode continuous \
@@ -138,7 +139,7 @@ What is still operationally sensitive:
 - OpenClaw plugin/config state in `~/.openclaw/openclaw.json`
 - provider stability / request timeouts
 - duplicate plugin ids from previously installed local extensions
-- plugin continuous experiments with TokenPilot reduction/eviction/estimator enabled
+- plugin continuous experiments with the current TokenPilot component reduction/eviction/estimator enabled
 
 ## Known pitfalls
 

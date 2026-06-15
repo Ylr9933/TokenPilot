@@ -19,7 +19,7 @@
 ---
 
 **LightMem2** is a modular framework for long-running agent memory and context management.
-This repository currently documents the OpenClaw-based runtime path of LightMem2, with the sections below focused on the TokenPilot runtime component and its supporting code.
+This repository currently exposes the OpenClaw-based runtime path of LightMem2, where **TokenPilot** is the current context-management and runtime-optimization component.
 
 <span id='contents'/>
 
@@ -29,6 +29,7 @@ This repository currently documents the OpenClaw-based runtime path of LightMem2
 * <a href='#installation'>🔧 Installation</a>
 * <a href='#quickstart'>⚡ Quick Start</a>
 * <a href='#architecture'>🏗️ Architecture</a>
+* <a href='#experiments'>🧪 Experiments & Reproduction</a>
 * <a href='#examples'>💡 Examples</a>
 * <a href='#experimental-results'>📁 Experimental Results</a>
 * <a href='#configuration'>⚙️ Configuration</a>
@@ -37,7 +38,7 @@ This repository currently documents the OpenClaw-based runtime path of LightMem2
 
 ## 📢 News
 
-- **[2026-06-08]** TokenPilot is released.
+- **[2026-06-08]** TokenPilot is released as the first public runtime component in LightMem2.
 
 <span id='installation'/>
 
@@ -79,7 +80,7 @@ pnpm plugin:pack:release
 
 ## ⚡ Quick Start
 
-### 1. Use the TokenPilot Model Namespace
+### 1. Use the TokenPilot Component Namespace
 
 When the plugin is active, OpenClaw will expose models under:
 
@@ -93,7 +94,7 @@ For example:
 tokenpilot/gpt-5.4-mini
 ```
 
-For a first run, use a `tokenpilot/...` model instead of your original provider model.
+For the current LightMem2 runtime path, use a `tokenpilot/...` model instead of your original provider model.
 
 ### 2. Verify It in a Real Session
 
@@ -163,7 +164,7 @@ The smoke script will:
 
 ## 🏗️ Architecture
 
-The current LightMem2 runtime path is built around the TokenPilot codebase, with the OpenClaw adapter, runtime engine, shared contracts, and stateful layers kept separate.
+The current LightMem2 runtime path is organized around the TokenPilot component, with the OpenClaw adapter, runtime engine, shared contracts, and stateful layers kept separate.
 
 ```text
 LightMem2/
@@ -180,13 +181,42 @@ LightMem2/
 └── README.md
 ```
 
+<span id='experiments'/>
+
+## 🧪 Experiments & Reproduction
+
+LightMem2 keeps benchmark adapters, datasets, and runner scripts under:
+
+```text
+experiments/
+```
+
+The root entry for experiment reproduction is:
+
+- [experiments/README.md](/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/README.md)
+
+The currently documented benchmark subtrees are:
+
+- [experiments/pinchbench/README.md](/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/pinchbench/README.md)
+- [experiments/claw-eval/README.md](/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/claw-eval/README.md)
+
+Recommended reproduction flow:
+
+1. Finish the installation steps in this root README and verify the plugin in a real OpenClaw session.
+2. Open [experiments/README.md](/mnt/20t/xubuqiang/EcoClaw/TokenPilot/experiments/README.md) and choose the benchmark you want to reproduce.
+3. Follow the benchmark-specific README for dataset assets, environment setup, and official runner commands.
+4. Run the benchmark from its `scripts/run_baseline.sh` or `scripts/run_method.sh` entrypoint.
+
+The root README only provides the public entry to the reproduction surface.
+Detailed setup notes, benchmark-specific assets, and exact commands live inside the corresponding `experiments/` subdirectories.
+
 <span id='examples'/>
 
 ## 💡 Examples
 
 ### Runtime Commands
 
-TokenPilot exposes a small command surface inside OpenClaw sessions.
+The current TokenPilot component exposes a small command surface inside OpenClaw sessions.
 
 Status and report:
 
@@ -231,7 +261,7 @@ For most users, the recommended default is:
 
 ## 📁 Experimental Results
 
-The tables below summarize the current TokenPilot-based runtime path in LightMem2 on **PinchBench** and **Claw-Eval**.
+The tables below summarize the current LightMem2 runtime path, implemented today through the TokenPilot component, on **PinchBench** and **Claw-Eval**.
 
 `Isolated` mode evaluates each task in a fresh session, focusing on single-task behavior without cross-task history carryover.
 `Continuous` mode evaluates longer-running shared-session workflows, where context accumulation and cache reuse matter much more.
@@ -312,7 +342,7 @@ Claw-Eval abbreviations: Wkfl=Workflow, Off=Office QA, Oprn=Operations, Safe=Saf
 
 ## ⚙️ Configuration
 
-The configuration below is for the current **TokenPilot-based runtime path** in LightMem2, through your OpenClaw config, typically:
+The configuration below is for the current **LightMem2 OpenClaw runtime path**, which is currently surfaced through the TokenPilot component in your OpenClaw config:
 
 ```text
 ~/.openclaw/openclaw.json

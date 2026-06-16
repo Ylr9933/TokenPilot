@@ -54,8 +54,8 @@ export function inspectOpenClawDoctor(currentConfig?: Record<string, unknown>): 
   const allow = Array.isArray(getNestedValue(config, ["tools", "allow"])) ? getNestedValue(config, ["tools", "allow"]) as unknown[] : [];
   const alsoAllow = Array.isArray(getNestedValue(config, ["tools", "alsoAllow"])) ? getNestedValue(config, ["tools", "alsoAllow"]) as unknown[] : [];
   const modelKeys = getNestedValue(config, ["agents", "defaults", "models"]);
-  const hasTokenPilotModelNamespace = modelKeys && typeof modelKeys === "object"
-    ? Object.keys(modelKeys as Record<string, unknown>).some((key) => key.startsWith("tokenpilot/"))
+  const hasRuntimeModelNamespace = modelKeys && typeof modelKeys === "object"
+    ? Object.keys(modelKeys as Record<string, unknown>).some((key) => key.startsWith("tokenpilot/") || key.startsWith("lightmem2/"))
     : false;
 
   const checks: OpenClawDoctorCheck[] = [
@@ -91,8 +91,8 @@ export function inspectOpenClawDoctor(currentConfig?: Record<string, unknown>): 
     },
     {
       key: "modelNamespace",
-      ok: hasTokenPilotModelNamespace,
-      detail: "tokenpilot/<model> namespace is registered in agents.defaults.models",
+      ok: hasRuntimeModelNamespace,
+      detail: "tokenpilot/<model> or lightmem2/<model> namespace is registered in agents.defaults.models",
     },
   ];
 

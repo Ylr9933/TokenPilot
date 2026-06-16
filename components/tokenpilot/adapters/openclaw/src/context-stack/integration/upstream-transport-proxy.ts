@@ -15,24 +15,28 @@ export function resolveUpstreamProxySettings(): {
   noProxy?: string;
 } {
   const httpProxy = resolveProxyEnvValue(
+    "LIGHTMEM2_UPSTREAM_HTTP_PROXY",
     "TOKENPILOT_UPSTREAM_HTTP_PROXY",
     "tokenpilot_upstream_http_proxy",
     "http_proxy",
     "HTTP_PROXY",
   );
   const httpsProxy = resolveProxyEnvValue(
+    "LIGHTMEM2_UPSTREAM_HTTPS_PROXY",
     "TOKENPILOT_UPSTREAM_HTTPS_PROXY",
     "tokenpilot_upstream_https_proxy",
     "https_proxy",
     "HTTPS_PROXY",
   ) ?? httpProxy;
   const allProxy = resolveProxyEnvValue(
+    "LIGHTMEM2_UPSTREAM_ALL_PROXY",
     "TOKENPILOT_UPSTREAM_ALL_PROXY",
     "tokenpilot_upstream_all_proxy",
     "all_proxy",
     "ALL_PROXY",
   );
   const noProxy = resolveProxyEnvValue(
+    "LIGHTMEM2_UPSTREAM_NO_PROXY",
     "TOKENPILOT_UPSTREAM_NO_PROXY",
     "tokenpilot_upstream_no_proxy",
     "no_proxy",

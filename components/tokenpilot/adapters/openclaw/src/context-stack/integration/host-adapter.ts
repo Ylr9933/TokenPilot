@@ -3,7 +3,7 @@ import { createStaticStatePathResolver } from "@tokenpilot/host-adapter";
 
 export function createOpenClawStatePathResolver() {
   const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
-  const envStateDir = process.env.TOKENPILOT_STATE_DIR;
+  const envStateDir = process.env.LIGHTMEM2_STATE_DIR ?? process.env.TOKENPILOT_STATE_DIR;
   const defaultStateDir =
     typeof envStateDir === "string" && envStateDir.trim().length > 0
       ? envStateDir.trim()

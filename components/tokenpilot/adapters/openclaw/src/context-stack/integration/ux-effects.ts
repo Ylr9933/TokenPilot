@@ -105,7 +105,7 @@ function normalizeModelForCounter(model: string): string {
   const trimmed = String(model || "").trim();
   if (!trimmed) return "gpt-5.4-mini";
   if (trimmed.startsWith("tokenpilot/")) return trimmed.slice("tokenpilot/".length);
-  if (trimmed.startsWith("tokenpilot/")) return trimmed.slice("tokenpilot/".length);
+  if (trimmed.startsWith("lightmem2/")) return trimmed.slice("lightmem2/".length);
   return trimmed;
 }
 

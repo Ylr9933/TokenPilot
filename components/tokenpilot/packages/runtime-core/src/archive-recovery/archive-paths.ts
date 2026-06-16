@@ -34,6 +34,10 @@ export function defaultPluginStateDir(): string {
   if (statePathResolver) {
     return statePathResolver.defaultStateDir();
   }
+  const lightmem2StateDir = process.env.LIGHTMEM2_STATE_DIR;
+  if (typeof lightmem2StateDir === "string" && lightmem2StateDir.trim().length > 0) {
+    return lightmem2StateDir.trim();
+  }
   const envStateDir = process.env.TOKENPILOT_STATE_DIR;
   if (typeof envStateDir === "string" && envStateDir.trim().length > 0) {
     return envStateDir.trim();
@@ -50,6 +54,10 @@ export function pluginStateDirCandidates(explicitStateDir?: string): string[] {
   }
   if (explicitStateDir && explicitStateDir.trim().length > 0) {
     return [explicitStateDir.trim()];
+  }
+  const lightmem2StateDir = process.env.LIGHTMEM2_STATE_DIR;
+  if (typeof lightmem2StateDir === "string" && lightmem2StateDir.trim().length > 0) {
+    return [lightmem2StateDir.trim()];
   }
   const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
   return [join(homeDir, DEFAULT_HOST_NEUTRAL_STATE_ROOT, PLUGIN_STATE_DIRNAME)];

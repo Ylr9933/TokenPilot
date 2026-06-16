@@ -45,17 +45,18 @@
 If your OpenClaw home or config path is not under the default `~/.openclaw`, you can override it with:
 
 ```bash
-export TOKENPILOT_OPENCLAW_HOME="/path/to/openclaw-home"
+export LIGHTMEM2_OPENCLAW_HOME="/path/to/openclaw-home"
 export OPENCLAW_CONFIG_PATH="/path/to/openclaw.json"
 ```
 
+Then, clone this repository and run the installer script:
 ```bash
 git clone https://github.com/zjunlp/LightMem2.git
 cd LightMem2
 corepack enable
 pnpm install
 pnpm build
-pnpm plugin:install:release
+pnpm component:install:tokenpilot:openclaw
 ```
 
 The installer will:
@@ -66,42 +67,37 @@ The installer will:
 - enable the TokenPilot plugin entry
 - try to restart the OpenClaw gateway automatically
 
-If you only want to package the plugin without installing it:
-
-```bash
-pnpm plugin:pack:release
-```
-
 <span id='quickstart'/>
 
 ## ⚡ Quick Start
 
-### 1. Use the TokenPilot Component Namespace
+### 1. Use the Component Namespace
 
 When the current OpenClaw adapter is active, OpenClaw will expose models under:
 
 ```text
-tokenpilot/<model>
+lightmem2/<model>
 ```
 
 For example:
 
 ```text
-tokenpilot/gpt-5.4-mini
+lightmem2/gpt-5.4-mini
 ```
 
-For the current LightMem2 runtime path, use a `tokenpilot/...` model instead of your original provider model.
+For the current LightMem2 runtime path, use a `lightmem2/...` model instead of your original provider model.
+The legacy `tokenpilot/...` model namespace is still supported for compatibility.
 
 ### 2. Verify It in a Real Session
 
 The simplest manual verification flow is:
 
 1. Start or restart OpenClaw.
-2. Open a session with a `tokenpilot/<model>` model.
+2. Open a session with a `lightmem2/<model>` model.
 3. Run:
 
 ```text
-/tokenpilot status
+/lightmem2 status
 ```
 
 You should see a status block similar to:
@@ -114,23 +110,12 @@ You should see a status block similar to:
 For a fuller runtime summary, run:
 
 ```text
-/tokenpilot report
-/tokenpilot doctor
+/lightmem2 report
+/lightmem2 doctor
 ```
 
-After a few turns, TokenPilot state is usually written under:
-
-```text
-~/.openclaw/tokenpilot-plugin-state/tokenpilot/
-```
-
-Useful files include:
-
-- `event-trace.jsonl`
-- `provider-traffic.jsonl`
-- `forwarded-inputs/`
-
-`/tokenpilot doctor` is the quickest integration self-check for the current
+The legacy `/tokenpilot ...` command surface is still supported for compatibility.
+`/lightmem2 doctor` is the quickest integration self-check for the current
 OpenClaw adapter surface.
 
 ### 3. Run the Built-In Smoke Test
@@ -142,21 +127,22 @@ bash docs/scripts/smoke_isolated_gateway.sh
 Before running it, set your upstream provider info:
 
 ```bash
-export TOKENPILOT_API_KEY="your_api_key"
-export TOKENPILOT_BASE_URL="https://your-openai-compatible-endpoint/v1"
+export LIGHTMEM2_API_KEY="your_api_key"
+export LIGHTMEM2_BASE_URL="https://your-openai-compatible-endpoint/v1"
 ```
 
 If your machine does **not** need an upstream HTTP proxy, also clear:
 
 ```bash
-export TOKENPILOT_UPSTREAM_HTTP_PROXY=
-export TOKENPILOT_UPSTREAM_HTTPS_PROXY=
+export LIGHTMEM2_UPSTREAM_HTTP_PROXY=
+export LIGHTMEM2_UPSTREAM_HTTPS_PROXY=
 ```
+The legacy `TOKENPILOT_*` environment variable names are still supported for compatibility.
 
 The smoke script will:
 
 - create a temporary OpenClaw runtime home
-- wire TokenPilot as a local proxy provider
+- wire LightMem2 as a local proxy provider
 - start a local gateway
 - send a minimal `Reply with exactly: pong` request
 
@@ -242,9 +228,6 @@ Recommended reproduction flow:
 4. Follow the benchmark-specific README for dataset assets, environment setup, and official runner commands.
 5. Run the benchmark from its `scripts/run_baseline.sh` or `scripts/run_method.sh` entrypoint.
 
-For the current public repo, those experiment surfaces are tied to the
-TokenPilot component path under `experiments/tokenpilot/`.
-
 <span id='examples'/>
 
 ## 💡 Examples
@@ -252,18 +235,18 @@ TokenPilot component path under `experiments/tokenpilot/`.
 The first in-session commands to care about are:
 
 ```text
-/tokenpilot status
-/tokenpilot report
-/tokenpilot doctor
-/tokenpilot help
+/lightmem2 status
+/lightmem2 report
+/lightmem2 doctor
+/lightmem2 help
 ```
 
 Use them in that order:
 
-- `/tokenpilot status` confirms the component is active
-- `/tokenpilot report` shows savings after a few turns
-- `/tokenpilot doctor` checks the current OpenClaw adapter installation and config surface
-- `/tokenpilot help` shows the full command surface
+- `/lightmem2 status` confirms the component is active
+- `/lightmem2 report` shows savings after a few turns
+- `/lightmem2 doctor` checks the current OpenClaw adapter installation and config surface
+- `/lightmem2 help` shows the full command surface
 
 For full command details, runtime state, and debugging notes, see:
 

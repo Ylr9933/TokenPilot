@@ -6,7 +6,7 @@ export async function resolveProxyUpstream(
   helpers: any,
 ): Promise<UpstreamConfig | null> {
   let upstream: UpstreamConfig | null = null;
-  const configuredProviderId = String((cfg as any).proxyProviderId ?? process.env.TOKENPILOT_UPSTREAM_PROVIDER ?? "").trim();
+  const configuredProviderId = String((cfg as any).proxyProviderId ?? process.env.LIGHTMEM2_UPSTREAM_PROVIDER ?? process.env.TOKENPILOT_UPSTREAM_PROVIDER ?? "").trim();
   if (cfg.proxyBaseUrl && cfg.proxyApiKey) {
     const detected = await helpers.detectUpstreamConfig(logger, {
       preferredProviderId: configuredProviderId || undefined,

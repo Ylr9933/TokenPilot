@@ -304,10 +304,16 @@ export function registerTokenPilotCommand(api: any, logger: { debug?: (...args: 
     handler,
   });
   api.registerCommand({
+    name: "lightmem2",
+    description: "LightMem2 command surface. Compatible alias for /tokenpilot.",
+    acceptsArgs: true,
+    handler,
+  });
+  api.registerCommand({
     name: "tp",
     description: "Alias for /tokenpilot.",
     acceptsArgs: true,
     handler,
   });
-  logger.debug?.("[plugin-runtime] Registered /tokenpilot and /tp commands.");
+  logger.debug?.("[plugin-runtime] Registered /tokenpilot, /lightmem2, and /tp commands.");
 }

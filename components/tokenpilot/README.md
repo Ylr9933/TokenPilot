@@ -30,6 +30,10 @@ Use this component README when you need TokenPilot-specific details:
 - debugging notes
 - host integration boundary
 
+For compatibility, the current OpenClaw adapter also accepts the `lightmem2`
+command and model namespace aliases in addition to the established
+`tokenpilot` ones.
+
 ## Component And Adapter Boundary
 
 Within LightMem2, `TokenPilot` is the reusable component layer.

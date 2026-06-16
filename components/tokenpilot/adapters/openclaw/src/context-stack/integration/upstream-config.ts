@@ -98,7 +98,8 @@ export async function ensureExplicitProxyModelsInConfig(
     doc.agents.defaults = doc.agents.defaults ?? {};
     doc.agents.defaults.models = doc.agents.defaults.models ?? {};
 
-    const existingProvider = doc.models.providers.tokenpilot ?? {};
+    const existingTokenPilotProvider = doc.models.providers.tokenpilot ?? {};
+    const existingLightMem2Provider = doc.models.providers.lightmem2 ?? {};
     const desiredModels = upstream.models.map((m) => ({
       id: m.id,
       name: m.name,
@@ -109,7 +110,15 @@ export async function ensureExplicitProxyModelsInConfig(
       maxTokens: m.maxTokens,
     }));
     doc.models.providers.tokenpilot = {
-      ...existingProvider,
+      ...existingTokenPilotProvider,
+      baseUrl: proxyBaseUrl,
+      apiKey: "tokenpilot-local",
+      api: "openai-responses",
+      authHeader: false,
+      models: desiredModels,
+    };
+    doc.models.providers.lightmem2 = {
+      ...existingLightMem2Provider,
       baseUrl: proxyBaseUrl,
       apiKey: "tokenpilot-local",
       api: "openai-responses",
@@ -118,8 +127,9 @@ export async function ensureExplicitProxyModelsInConfig(
     };
 
     for (const model of upstream.models) {
-      const key = `tokenpilot/${model.id}`;
-      if (!doc.agents.defaults.models[key]) doc.agents.defaults.models[key] = {};
+      for (const key of [`tokenpilot/${model.id}`, `lightmem2/${model.id}`]) {
+        if (!doc.agents.defaults.models[key]) doc.agents.defaults.models[key] = {};
+      }
     }
 
     const nextRaw = JSON.stringify(doc, null, 2);
@@ -137,6 +147,8 @@ export function normalizeProxyModelId(model: string): string {
   if (!value) return value;
   const stripped = value.startsWith("tokenpilot/")
     ? value.slice("tokenpilot/".length)
-    : value;
+    : value.startsWith("lightmem2/")
+      ? value.slice("lightmem2/".length)
+      : value;
   return stripped.replace("gpt-5-4-mini", "gpt-5.4-mini");
 }

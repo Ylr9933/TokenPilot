@@ -30,6 +30,20 @@ Use this component README when you need TokenPilot-specific details:
 - debugging notes
 - host integration boundary
 
+## Component And Adapter Boundary
+
+Within LightMem2, `TokenPilot` is the reusable component layer.
+Its shared logic stays under `packages/`, while each concrete host integration lives under `adapters/`.
+
+In the current public repo:
+
+- `packages/`
+  - shared runtime engine, contracts, and stateful layers
+- `adapters/openclaw/`
+  - the current production host adapter for OpenClaw
+
+This is the intended reuse boundary for future hosts such as Codex CLI or Claude Code.
+
 ## Component Layout
 
 ```text

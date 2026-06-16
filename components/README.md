@@ -1,12 +1,28 @@
 # Components
 
 This directory contains runtime components built on top of the LightMem2 framework.
+Each component can expose one or more host adapters without duplicating its shared runtime logic.
 
 The current public repository ships one component:
 
 | Component | Status | Role | Docs |
 | :-- | :-- | :-- | :-- |
-| `TokenPilot` | public | OpenClaw runtime component for context stabilization, reduction, and lifecycle-aware eviction | [components/tokenpilot/README.md](./tokenpilot/README.md) |
+| `TokenPilot` | public | Runtime component for context stabilization, reduction, and lifecycle-aware eviction | [components/tokenpilot/README.md](./tokenpilot/README.md) |
+
+## Component And Adapter Split
+
+LightMem2 separates:
+
+- component packages
+  - reusable runtime logic
+  - state and policy layers
+  - host-agnostic contracts
+- host adapters
+  - installation and bootstrap
+  - transcript/session bridging
+  - host-specific command and hook surfaces
+
+This layout is meant to let a single component support multiple agent hosts over time.
 
 ## How To Read This Directory
 

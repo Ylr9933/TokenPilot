@@ -27,6 +27,13 @@ The intended split is:
   - command surface
   - install / doctor / runtime bootstrap
 
+In directory form, that means:
+
+- `components/tokenpilot/packages/*`
+  - reusable component logic
+- `components/tokenpilot/adapters/<host>`
+  - host-specific integration layer
+
 At the moment, OpenClaw is the only fully implemented adapter. Some OpenClaw
 assumptions are still being pushed out of shared packages and into the adapter
 boundary.

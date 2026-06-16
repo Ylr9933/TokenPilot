@@ -40,12 +40,6 @@
 
 ## 🔧 Installation
 
-The current public repository ships **TokenPilot** as the first released
-runtime component in the broader **LightMem2** framework.
-
-Today, the supported production host is **OpenClaw**. The installation flow
-below therefore installs the current TokenPilot OpenClaw adapter path.
-
 ### Installation Steps
 
 If your OpenClaw home or config path is not under the default `~/.openclaw`, you can override it with:
@@ -180,22 +174,23 @@ Once the basic runtime path is working, use these component-level docs:
 ## 🧩 Components
 
 LightMem2 is intended to host multiple long-running-agent components over time.
-The current public repository is centered on the first released component:
 
 | Component | Role | Main Docs | Experiments |
 | :-- | :-- | :-- | :-- |
 | `TokenPilot` | Runtime component for context stabilization, reduction, and lifecycle-aware eviction | [components/tokenpilot/README.md](./components/tokenpilot/README.md) | [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md) |
 
-The root README stays focused on the fastest path to a successful first run.
-Component-specific details live under each component subtree so the repo can scale without turning the root page into a full manual.
-The framework-level component index lives at [components/README.md](./components/README.md).
-
 <span id='architecture'/>
 
 ## 🏗️ Architecture
 
-The current public repository layout is still centered on the TokenPilot runtime workspace inside LightMem2.
-At this stage, the host adapter boundary, runtime engine, shared contracts, and stateful layers are kept as separate packages under one repo root.
+The current public repository is organized around released component and its current production host adapter.
+
+At a high level:
+
+- `components/<name>/packages`
+  - shared logic that should remain reusable across hosts
+- `components/<name>/adapters`
+  - host-specific integration code, install surfaces, runtime hooks, and command wiring
 
 ```text
 LightMem2/

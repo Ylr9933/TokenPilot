@@ -517,7 +517,7 @@ For the full component-level configuration reference, see:
 
 ## 📄 Citation
 
-Please cite our paper if you use EasyEdit in your work.
+Please cite our paper if you use LightMem2 in your work.
 
 ```bibtex
 @inproceedings{fang2025lightmem,

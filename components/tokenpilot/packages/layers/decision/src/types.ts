@@ -68,7 +68,7 @@ export type ReductionStrategy =
   | "path_truncation"          // Truncate long file paths in output
   | "image_downsample"         // Downsample large base64 images
   | "line_number_strip"        // Strip line number prefixes from read output
-  | "agents_startup_optimization"  // Modify AGENTS.md to prevent redundant reads
+  | "agents_startup_optimization"  // Rewrite injected agent startup instructions to prevent redundant reads
   | (string & {});              // Extensible
 
 /**

@@ -23,20 +23,20 @@ If memory files exist in this workspace, they will be listed below in the **Memo
 `;
 
 /**
- * Pattern to match the Session Startup section in AGENTS.md
- * Matches from "## Session Startup" to the next "##" header or end of section
+ * Pattern to match the Session Startup section in an injected agent instruction file.
+ * Matches from "## Session Startup" to the next "##" header or end of section.
  */
 const SESSION_STARTUP_PATTERN = /## Session Startup\s*\n(?:.*?\n)*?(?=\n##\s|##$|$)/i;
 
 /**
- * Check if content contains the problematic Session Startup section
+ * Check if content contains the problematic Session Startup section.
  */
 function hasSessionStartupSection(content: string): boolean {
   return SESSION_STARTUP_PATTERN.test(content);
 }
 
 /**
- * Replace Session Startup section with modified version
+ * Replace Session Startup section with modified version.
  */
 function replaceSessionStartup(content: string): { content: string; changed: boolean } {
   const match = content.match(SESSION_STARTUP_PATTERN);
@@ -49,7 +49,7 @@ function replaceSessionStartup(content: string): { content: string; changed: boo
 }
 
 /**
- * Also modify the Memory section to clarify on-demand reading
+ * Also modify the Memory section to clarify on-demand reading.
  */
 const MODIFIED_MEMORY_SECTION = `## Memory
 
@@ -65,6 +65,17 @@ Check the workspace file list to see if these files exist. If you don't see memo
 `;
 
 const MEMORY_SECTION_PATTERN = /## Memory\s*\n(?:.*?\n)*?(?=##\s|##$|$)/s;
+
+const AGENT_FILE_HEADER_PATTERNS = [
+  /\[AGENTS\.md\]/i,
+  /# AGENTS\.md\b/i,
+  /## .*\/AGENTS\.md\b/i,
+  /\[AGENT(?:\s|_|-)INSTRUCTIONS?\]/i,
+];
+
+function looksLikeAgentInstructionSegment(content: string): boolean {
+  return AGENT_FILE_HEADER_PATTERNS.some((pattern) => pattern.test(content));
+}
 
 function replaceMemorySection(content: string): { content: string; changed: boolean } {
   const match = content.match(MEMORY_SECTION_PATTERN);
@@ -95,16 +106,15 @@ export const agentsStartupOptimizationPass: ReductionPassHandler = {
     let segmentCheckedCount = 0;
     let agentsSegmentFound = false;
 
-    // Find segments that contain AGENTS.md content
+    // Find segments that contain an injected agent instruction file.
     for (let i = 0; i < turnCtx.segments.length; i += 1) {
       const segment = turnCtx.segments[i];
       const text = segment.text;
       segmentCheckedCount++;
 
-      // Check if this segment contains AGENTS.md content
-      // OpenClaw injects as [AGENTS.md] not # AGENTS.md
+      // Hosts can surface agent instructions in slightly different wrappers.
       const isAgentsSegment =
-        (text.includes("[AGENTS.md]") || text.includes("# AGENTS.md")) &&
+        looksLikeAgentInstructionSegment(text) &&
         text.includes("## Session Startup");
 
       if (isAgentsSegment) {

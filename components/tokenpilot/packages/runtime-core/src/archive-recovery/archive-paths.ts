@@ -6,6 +6,7 @@ import type { TokenPilotStatePathResolver } from "@tokenpilot/host-adapter";
 export const PLUGIN_STATE_DIRNAME = "tokenpilot-plugin-state";
 export const PLUGIN_NAMESPACE_DIR = "tokenpilot";
 export const WORKSPACE_ARCHIVE_DIRNAME = ".tokenpilot-archives";
+export const DEFAULT_HOST_NEUTRAL_STATE_ROOT = ".tokenpilot";
 
 let statePathResolver: TokenPilotStatePathResolver | null = null;
 
@@ -38,7 +39,7 @@ export function defaultPluginStateDir(): string {
     return envStateDir.trim();
   }
   const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
-  const candidate = join(homeDir, ".openclaw", PLUGIN_STATE_DIRNAME);
+  const candidate = join(homeDir, DEFAULT_HOST_NEUTRAL_STATE_ROOT, PLUGIN_STATE_DIRNAME);
   if (existsSync(candidate)) return candidate;
   return candidate;
 }
@@ -51,7 +52,7 @@ export function pluginStateDirCandidates(explicitStateDir?: string): string[] {
     return [explicitStateDir.trim()];
   }
   const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
-  return [join(homeDir, ".openclaw", PLUGIN_STATE_DIRNAME)];
+  return [join(homeDir, DEFAULT_HOST_NEUTRAL_STATE_ROOT, PLUGIN_STATE_DIRNAME)];
 }
 
 export function pluginStateDirWriteTargets(stateDir: string): string[] {
@@ -86,21 +87,11 @@ export function defaultArchiveDir(sessionId: string, workspaceDir?: string): str
   if (workspaceDir) {
     return workspaceArchiveDir(workspaceDir);
   }
-  const match = sessionId.match(/-(\d+)-j(\d+)$/);
-  if (match) {
-    const runId = match[1];
-    const jobId = match[2];
-    return `/tmp/pinchbench/${runId}/agent_workspace_j${jobId}/${workspaceArchiveDirname()}`;
-  }
   return pluginStateSubdir(defaultPluginStateDir(), "tool-result-archives", sanitizePathPart(sessionId));
 }
 
 export function defaultArchiveLookupDirs(sessionId: string, stateDir?: string): string[] {
   const dirs: string[] = [];
-  const sessionMatch = sessionId.match(/-(\d+)-j(\d+)$/);
-  if (sessionMatch) {
-    dirs.push(`/tmp/pinchbench/${sessionMatch[1]}/agent_workspace_j${sessionMatch[2]}/${workspaceArchiveDirname()}`);
-  }
   const resolvedStateDir = stateDir ?? defaultPluginStateDir();
   dirs.push(...pluginStateSubdirCandidates(resolvedStateDir, "tool-result-archives", sessionId));
   return Array.from(new Set(dirs));

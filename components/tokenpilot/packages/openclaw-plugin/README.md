@@ -35,6 +35,13 @@ This installs the packaged TokenPilot runtime component into:
 ~/.openclaw/extensions/tokenpilot
 ```
 
+After install, run the adapter doctor:
+
+```bash
+cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+npm run doctor:openclaw
+```
+
 Development-style install should use source build + runtime sync instead of
 mixing release and load-path installs. The current sanity workflow is:
 
@@ -97,6 +104,13 @@ rg 'stable_prefix_rewrite|proxy_before_call_rewrite|proxy_after_call_rewrite|too
   $HOME/.openclaw/tokenpilot-plugin-state/task-state/trace.jsonl
 ```
 
+Lightweight integration self-check:
+
+```bash
+cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+npm run doctor:openclaw
+```
+
 The runtime sanity guide lives in:
 
 - [`docs/run-guide.md`](../../../../docs/run-guide.md)
@@ -109,6 +123,7 @@ Primary package scripts:
 corepack pnpm build
 corepack pnpm typecheck
 node --import tsx --test src/**/*.test.ts
+npm run doctor:openclaw
 ```
 
 The package still contains a small release-helper surface under

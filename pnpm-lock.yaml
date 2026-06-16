@@ -18,9 +18,9 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/kernel: {}
+  components/tokenpilot/packages/kernel: {}
 
-  packages/layers/decision:
+  components/tokenpilot/packages/layers/decision:
     dependencies:
       '@tokenpilot/history':
         specifier: workspace:*
@@ -29,19 +29,22 @@ importers:
         specifier: workspace:*
         version: link:../../kernel
 
-  packages/layers/history:
+  components/tokenpilot/packages/layers/history:
     dependencies:
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../../kernel
+      '@tokenpilot/runtime-core':
+        specifier: workspace:*
+        version: link:../../runtime-core
 
-  packages/layers/memory:
+  components/tokenpilot/packages/layers/memory:
     dependencies:
       '@tokenpilot/history':
         specifier: workspace:*
         version: link:../history
 
-  packages/openclaw-plugin:
+  components/tokenpilot/packages/openclaw-plugin:
     dependencies:
       '@tokenpilot/decision':
         specifier: workspace:*
@@ -69,8 +72,11 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/runtime-core:
+  components/tokenpilot/packages/runtime-core:
     dependencies:
+      '@tokenpilot/decision':
+        specifier: workspace:*
+        version: link:../layers/decision
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../kernel

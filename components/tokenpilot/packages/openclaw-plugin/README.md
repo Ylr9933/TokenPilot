@@ -3,6 +3,10 @@
 This package contains the live OpenClaw adapter runtime for the current LightMem2 OpenClaw path.
 Within the broader LightMem2 framework, this package is the runtime adapter layer used by the TokenPilot component.
 
+For the component-level overview, command surface, and full configuration reference, see:
+
+- [`components/tokenpilot/README.md`](../README.md)
+
 Current runtime responsibilities:
 
 - embedded responses proxy
@@ -14,14 +18,14 @@ Current runtime responsibilities:
 
 For a higher-level semantic map of the current module boundaries, see:
 
-- [`docs/architecture/plugin-semantic-grouping.md`](../../docs/architecture/plugin-semantic-grouping.md)
+- [`docs/architecture/plugin-semantic-grouping.md`](../../../../docs/architecture/plugin-semantic-grouping.md)
 
 ## Install
 
 Release-style install:
 
 ```bash
-cd /path/to/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
 npm run install:release
 ```
 
@@ -41,12 +45,12 @@ mixing release and load-path installs. The current sanity workflow is:
 
 See:
 
-- [`docs/run-guide.md`](../../docs/run-guide.md)
+- [`docs/run-guide.md`](../../../../docs/run-guide.md)
 
 ## Build
 
 ```bash
-cd /path/to/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
 corepack pnpm build
 corepack pnpm typecheck
 ```
@@ -95,7 +99,7 @@ rg 'stable_prefix_rewrite|proxy_before_call_rewrite|proxy_after_call_rewrite|too
 
 The runtime sanity guide lives in:
 
-- [`docs/run-guide.md`](../../docs/run-guide.md)
+- [`docs/run-guide.md`](../../../../docs/run-guide.md)
 
 ## Package Scripts
 
@@ -108,10 +112,10 @@ node --import tsx --test src/**/*.test.ts
 ```
 
 The package still contains a small release-helper surface under
-`packages/openclaw-plugin/scripts/`. Benchmarking and evaluation flows should
+`components/tokenpilot/packages/openclaw-plugin/scripts/`. Benchmarking and evaluation flows should
 stay outside this package and eventually live under the top-level
 `experiments/` tree.
 
 Script inventory:
 
-- [`docs/architecture/plugin-script-inventory.md`](../../docs/architecture/plugin-script-inventory.md)
+- [`docs/architecture/plugin-script-inventory.md`](../../../../docs/architecture/plugin-script-inventory.md)

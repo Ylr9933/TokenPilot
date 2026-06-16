@@ -1,13 +1,13 @@
 {
-    "name": "tokenpilot",
+    "name": "lightmem2",
     "private": true,
     "version": "0.1.0",
     "description": "LightMem2: a modular framework for long-running agent memory and context management, with TokenPilot as the current OpenClaw runtime component",
     "scripts": {
         "build": "pnpm -r build",
         "typecheck": "pnpm -r typecheck",
-        "plugin:pack:release": "npm --prefix packages/openclaw-plugin run pack:release",
-        "plugin:install:release": "npm --prefix packages/openclaw-plugin run install:release"
+        "plugin:pack:release": "npm --prefix components/tokenpilot/packages/openclaw-plugin run pack:release",
+        "plugin:install:release": "npm --prefix components/tokenpilot/packages/openclaw-plugin run install:release"
     },
     "devDependencies": {
         "typescript": "^5.9.3",
@@ -15,8 +15,8 @@
         "@types/node": "^24.3.0"
     },
     "workspaces": [
-        "packages/*",
-        "packages/*/*"
+        "components/tokenpilot/packages/*",
+        "components/tokenpilot/packages/*/*"
     ],
     "packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be"
 }

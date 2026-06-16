@@ -1,4 +1,4 @@
 packages:
-  - "packages/*"
-  - "packages/*/*"
+  - "components/tokenpilot/packages/*"
+  - "components/tokenpilot/packages/*/*"
   - "apps/*"

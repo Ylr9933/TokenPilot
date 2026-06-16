@@ -6,8 +6,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Xubqpanda/TokenPilot.git",
-    "directory": "packages/openclaw-plugin"
+    "url": "https://github.com/zjunlp/LightMem2.git",
+    "directory": "components/tokenpilot/packages/openclaw-plugin"
   },
   "files": [
     "dist/index.js",

@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@tokenpilot/decision": "workspace:*",
     "@tokenpilot/kernel": "workspace:*"
   }
 }

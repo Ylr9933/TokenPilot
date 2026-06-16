@@ -55,13 +55,13 @@
 * <a href='#examples'>💡 Examples</a>
 * <a href='#experimental-results'>📁 Experimental Results</a>
 * <a href='#configuration'>⚙️ Configuration</a>
+* <a href='#citation'>📄 Citation</a>
 
 <span id='news'/>
 
 ## 📢 News
 
-- **[2026-06-08]** TokenPilot is released as the first public runtime component in LightMem2.
-
+- **[2026-06-16]**: 🚀 **[TokenPilot: Cache-Efficient Context Management for LLM Agents](https://arxiv.org/abs/2606.17016)** is released.
 <span id='installation'/>
 
 ## 🔧 Installation
@@ -512,3 +512,49 @@ README.
 For the full component-level configuration reference, see:
 
 - [components/tokenpilot/README.md](./components/tokenpilot/README.md)
+
+<span id='configuration'/>
+
+## 📄 Citation
+
+Please cite our paper if you use EasyEdit in your work.
+
+```bibtex
+@inproceedings{fang2025lightmem,
+  title={LightMem: Lightweight and Efficient Memory-Augmented Generation},
+  author={Jizhan Fang and Xinle Deng and Haoming Xu and Ziyan Jiang and Yuqi Tang and Ziwen Xu and Shumin Deng and Yunzhi Yao and Mengru Wang and Shuofei Qiao and Huajun Chen and Ningyu Zhang},
+  booktitle={The Fourteenth International Conference on Learning Representations},
+  year={2026},
+  url={https://openreview.net/forum?id=dyJ0GWpjJB}
+}
+
+@misc{xu2026tokenpilotcacheefficientcontextmanagement,
+  title={TokenPilot: Cache-Efficient Context Management for LLM Agents},
+  author={Buqiang Xu and Zirui Xue and Dianmou Chen and Chenyang Fu and Chiyu Wu and Caiying Huang and Chen Jiang and Jizhan Fang and Xinle Deng and Yijun Chen and Yunzhi Yao and Xuehai Wang and Jin Shang and Gong Yu and Ningyu Zhang},
+  year={2026},
+  eprint={2606.17016},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2606.17016},
+}
+```
+
+## 🎉Contributors
+
+<a href="https://github.com/zjunlp/LightMem2/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=zjunlp/LightMem2" />
+</a>
+
+We thank all the contributors to this project, more contributors are welcome!
+
+#### Other Related Projects
+
+- [LLMLingua-2](https://github.com/microsoft/LLMLingua) — Token-level prompt compression
+- [SelectiveContext](https://github.com/liyucheng09/Selective_Context) — Self-information-based context reduction
+- [Pichay](https://github.com/fsgeek/pichay) — Demand paging for LLM context windows
+- [MemoBrain](https://github.com/qhjqhj00/MemoBrain) — Executive memory for long-horizon reasoning agents
+- [AgentSwing](https://github.com/Alibaba-NLP/DeepResearch) — Adaptive parallel context management routing for web agents
+- [MemOS](https://github.com/MemTensor/MemOS) — Memory operating system for LLM agents
+- [LightMem](https://github.com/zjunlp/LightMem) — Lightweight memory-augmented generation (ICLR 2026)
+
+🙌 We thank all the contributors to this project, and welcome further contributions from the community. We also thank the authors of the baseline methods evaluated in our experiments, including [LLMLingua-2](https://github.com/microsoft/LLMLingua), [SelectiveContext](https://github.com/liyucheng09/Selective_Context), [Pichay](https://github.com/fsgeek/pichay), [MemoBrain](https://github.com/qhjqhj00/MemoBrain), [AgentSwing](https://github.com/Alibaba-NLP/DeepResearch), and [MemOS](https://github.com/MemTensor/MemOS), for making their work publicly available.

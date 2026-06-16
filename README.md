@@ -12,6 +12,31 @@
   <img src="https://img.shields.io/badge/License-MIT-brightgreen" alt="license">
 </p>
 
+<p align="center">
+  <img src="./figs/LightMem2.png" alt="LightMem2 overview" width="860">
+</p>
+
+<p align="center">
+  LightMem2 is a lightweight runtime framework for long-running LLM agents.
+  It reduces context growth and serving cost in real shared-session workloads.
+</p>
+
+<p align="center">
+  <strong><span style="font-size:1.35em;">95.7% fewer input tokens</span></strong>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <strong><span style="font-size:1.35em;">87.0% lower cost</span></strong>
+  <br>
+  <span>vs. Vanilla OpenClaw on Claw-Eval continuous mode</span>
+</p>
+
+<p align="center">
+  <strong><span style="font-size:1.35em;">67.4% fewer input tokens</span></strong>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <strong><span style="font-size:1.35em;">61.5% lower cost</span></strong>
+  <br>
+  <span>vs. Vanilla OpenClaw on PinchBench continuous mode</span>
+</p>
+
 
 ---
 

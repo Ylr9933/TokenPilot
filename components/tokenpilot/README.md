@@ -36,6 +36,7 @@ Use this component README when you need TokenPilot-specific details:
 components/tokenpilot/
 ├── README.md
 └── packages/
+    ├── host-adapter/     # Shared host contracts and host-specific path/state interfaces
     ├── openclaw-plugin/  # OpenClaw adapter, hooks, commands, embedded proxy
     ├── runtime-core/     # Host-agnostic runtime engine and reduction pipeline
     ├── kernel/           # Shared contracts, events, and runtime-facing types
@@ -67,6 +68,7 @@ Current implementation status:
 ```text
 /tokenpilot status
 /tokenpilot report
+/tokenpilot doctor
 /tokenpilot help
 ```
 
@@ -260,6 +262,12 @@ OPENCLAW_CONFIG_PATH=$HOME/.openclaw/openclaw.json openclaw config validate
 tail -n 100 $HOME/.openclaw/logs/gateway.log
 rg 'stable_prefix_rewrite|proxy_before_call_rewrite|proxy_after_call_rewrite|tool_result_persist_applied' \
   $HOME/.openclaw/tokenpilot-plugin-state/task-state/trace.jsonl
+```
+
+Current OpenClaw adapter self-check:
+
+```text
+/tokenpilot doctor
 ```
 
 More package-level adapter notes live in:

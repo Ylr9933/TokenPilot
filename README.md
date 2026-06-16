@@ -40,6 +40,12 @@
 
 ## 🔧 Installation
 
+The current public repository ships **TokenPilot** as the first released
+runtime component in the broader **LightMem2** framework.
+
+Today, the supported production host is **OpenClaw**. The installation flow
+below therefore installs the current TokenPilot OpenClaw adapter path.
+
 ### Installation Steps
 
 If your OpenClaw home or config path is not under the default `~/.openclaw`, you can override it with:
@@ -60,7 +66,7 @@ pnpm plugin:install:release
 
 The installer will:
 
-- package the release plugin
+- package the current TokenPilot OpenClaw adapter
 - install it into `~/.openclaw/extensions/tokenpilot`
 - update `~/.openclaw/openclaw.json`
 - enable the TokenPilot plugin entry
@@ -78,7 +84,7 @@ pnpm plugin:pack:release
 
 ### 1. Use the TokenPilot Component Namespace
 
-When the plugin is active, OpenClaw will expose models under:
+When the current OpenClaw adapter is active, OpenClaw will expose models under:
 
 ```text
 tokenpilot/<model>
@@ -115,6 +121,7 @@ For a fuller runtime summary, run:
 
 ```text
 /tokenpilot report
+/tokenpilot doctor
 ```
 
 After a few turns, TokenPilot state is usually written under:
@@ -128,6 +135,9 @@ Useful files include:
 - `event-trace.jsonl`
 - `provider-traffic.jsonl`
 - `forwarded-inputs/`
+
+`/tokenpilot doctor` is the quickest integration self-check for the current
+OpenClaw adapter surface.
 
 ### 3. Run the Built-In Smoke Test
 
@@ -174,7 +184,7 @@ The current public repository is centered on the first released component:
 
 | Component | Role | Main Docs | Experiments |
 | :-- | :-- | :-- | :-- |
-| `TokenPilot` | OpenClaw runtime component for context stabilization, reduction, and lifecycle-aware eviction | [components/tokenpilot/README.md](./components/tokenpilot/README.md) | [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md) |
+| `TokenPilot` | Runtime component for context stabilization, reduction, and lifecycle-aware eviction | [components/tokenpilot/README.md](./components/tokenpilot/README.md) | [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md) |
 
 The root README stays focused on the fastest path to a successful first run.
 Component-specific details live under each component subtree so the repo can scale without turning the root page into a full manual.
@@ -185,14 +195,15 @@ The framework-level component index lives at [components/README.md](./components
 ## 🏗️ Architecture
 
 The current public repository layout is still centered on the TokenPilot runtime workspace inside LightMem2.
-At this stage, the OpenClaw adapter, runtime engine, shared contracts, and stateful layers are kept as separate packages under one repo root.
+At this stage, the host adapter boundary, runtime engine, shared contracts, and stateful layers are kept as separate packages under one repo root.
 
 ```text
 LightMem2/
 ├── components/
 │   └── tokenpilot/
 │       └── packages/
-│           ├── openclaw-plugin/  # OpenClaw adapter, hooks, commands, embedded proxy
+│           ├── host-adapter/    # Shared host-adapter contracts and path-resolution interfaces
+│           ├── openclaw-plugin/  # current production host adapter for OpenClaw
 │           ├── runtime-core/     # Host-agnostic runtime engine and shared execution logic
 │           ├── kernel/           # Shared types, interfaces, events, and runtime contracts
 │           └── layers/           # Stateful and policy-oriented logic
@@ -242,11 +253,12 @@ TokenPilot component path under `experiments/tokenpilot/`.
 
 ## 💡 Examples
 
-The first three in-session commands to care about are:
+The first in-session commands to care about are:
 
 ```text
 /tokenpilot status
 /tokenpilot report
+/tokenpilot doctor
 /tokenpilot help
 ```
 
@@ -254,6 +266,7 @@ Use them in that order:
 
 - `/tokenpilot status` confirms the component is active
 - `/tokenpilot report` shows savings after a few turns
+- `/tokenpilot doctor` checks the current OpenClaw adapter installation and config surface
 - `/tokenpilot help` shows the full command surface
 
 For full command details, runtime state, and debugging notes, see:

@@ -6,8 +6,9 @@ Within the broader LightMem2 framework, this package is the runtime adapter laye
 For the component-level overview, command surface, and full configuration reference, see:
 
 - [`components/tokenpilot/README.md`](../README.md)
+- [`components/tokenpilot/HOSTS.md`](../HOSTS.md)
 
-Current runtime responsibilities:
+Current adapter responsibilities:
 
 - embedded responses proxy
 - stable-prefix rewriting
@@ -40,6 +41,12 @@ After install, run the adapter doctor:
 ```bash
 cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
 npm run doctor:openclaw
+```
+
+Inside an active TokenPilot session, the equivalent self-check is:
+
+```text
+/tokenpilot doctor
 ```
 
 Development-style install should use source build + runtime sync instead of
@@ -84,8 +91,6 @@ The current component state directory prefers:
 $HOME/.openclaw/tokenpilot-plugin-state/tokenpilot/
 ```
 
-Legacy state roots are still read during the migration window.
-
 Useful files:
 
 - `event-trace.jsonl`
@@ -122,7 +127,7 @@ Primary package scripts:
 ```bash
 corepack pnpm build
 corepack pnpm typecheck
-node --import tsx --test src/**/*.test.ts
+npm test
 npm run doctor:openclaw
 ```
 

@@ -32,6 +32,7 @@ components/
 └── tokenpilot/
     ├── README.md
     └── packages/
+        ├── host-adapter/
         ├── openclaw-plugin/
         ├── runtime-core/
         ├── kernel/

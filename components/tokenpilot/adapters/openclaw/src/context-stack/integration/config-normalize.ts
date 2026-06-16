@@ -43,7 +43,7 @@ function normalizeHostConfig(raw: PluginHostConfig): NormalizedPluginHostConfig 
       dynamicContextTarget: hooks.dynamicContextTarget === "user" ? "user" : "developer",
     },
     contextEngine: {
-      enabled: contextEngine.enabled ?? false,
+      enabled: contextEngine.enabled ?? true,
       pruneThresholdChars: Math.max(10_000, contextEngine.pruneThresholdChars ?? 100_000),
       keepRecentToolResults: Math.max(0, contextEngine.keepRecentToolResults ?? 5),
       placeholder: typeof contextEngine.placeholder === "string" && contextEngine.placeholder.trim().length > 0 ? contextEngine.placeholder : "[pruned]",
@@ -95,9 +95,9 @@ function normalizeMethodConfig(raw: TokenPilotMethodConfig): NormalizedTokenPilo
 
   return {
     modules: {
-      stabilizer: modules.stabilizer ?? false,
-      policy: modules.policy ?? false,
-      reduction: modules.reduction ?? false,
+      stabilizer: modules.stabilizer ?? true,
+      policy: modules.policy ?? true,
+      reduction: modules.reduction ?? true,
       eviction: modules.eviction ?? false,
     },
     eviction: {
@@ -202,16 +202,16 @@ function normalizeMethodConfig(raw: TokenPilotMethodConfig): NormalizedTokenPilo
       triggerMinChars: Math.max(256, reduction.triggerMinChars ?? 2200),
       maxToolChars: Math.max(256, reduction.maxToolChars ?? 1200),
       passes: {
-        repeatedReadDedup: reductionPasses.repeatedReadDedup ?? false,
-        toolPayloadTrim: reductionPasses.toolPayloadTrim ?? false,
-        htmlSlimming: reductionPasses.htmlSlimming ?? false,
-        execOutputTruncation: reductionPasses.execOutputTruncation ?? false,
-        agentsStartupOptimization: reductionPasses.agentsStartupOptimization ?? false,
-        formatSlimming: reductionPasses.formatSlimming ?? false,
-        formatCleaning: reductionPasses.formatCleaning ?? false,
-        pathTruncation: reductionPasses.pathTruncation ?? false,
-        imageDownsample: reductionPasses.imageDownsample ?? false,
-        lineNumberStrip: reductionPasses.lineNumberStrip ?? false,
+        repeatedReadDedup: reductionPasses.repeatedReadDedup ?? true,
+        toolPayloadTrim: reductionPasses.toolPayloadTrim ?? true,
+        htmlSlimming: reductionPasses.htmlSlimming ?? true,
+        execOutputTruncation: reductionPasses.execOutputTruncation ?? true,
+        agentsStartupOptimization: reductionPasses.agentsStartupOptimization ?? true,
+        formatSlimming: reductionPasses.formatSlimming ?? true,
+        formatCleaning: reductionPasses.formatCleaning ?? true,
+        pathTruncation: reductionPasses.pathTruncation ?? true,
+        imageDownsample: reductionPasses.imageDownsample ?? true,
+        lineNumberStrip: reductionPasses.lineNumberStrip ?? true,
       },
       passOptions: {
         repeatedReadDedup: reductionPassOptions.repeatedReadDedup && typeof reductionPassOptions.repeatedReadDedup === "object" ? { ...reductionPassOptions.repeatedReadDedup } : {},

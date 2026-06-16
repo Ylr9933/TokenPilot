@@ -15,8 +15,8 @@ Use the root [README.md](../../README.md) for the fastest first-run path:
 
 - install the repo
 - install the plugin
-- open a `tokenpilot/<model>` session
-- verify with `/tokenpilot status`
+- open a `lightmem2/<model>` session
+- verify with `/lightmem2 status`
 
 Use [components/README.md](../README.md) if you want the framework-level
 component index before diving into TokenPilot-specific details.
@@ -88,6 +88,7 @@ Current implementation status:
 /tokenpilot status
 /tokenpilot report
 /tokenpilot doctor
+/tokenpilot mode normal
 /tokenpilot help
 ```
 
@@ -118,9 +119,25 @@ Current implementation status:
 
 Recommended default behavior:
 
-- keep `stabilizer` enabled
-- keep `reduction` enabled
+- default install mode is `normal`
+- keep `stabilizer` enabled in all modes
 - enable `eviction` mainly for longer continuous-session workloads
+
+### Runtime Modes
+
+TokenPilot now exposes three user-facing runtime presets:
+
+- `conservative`: stabilizer on, lighter reduction preset, eviction off
+- `normal`: stabilizer on, balanced reduction preset, eviction off
+- `aggressive`: stabilizer on, aggressive reduction preset, eviction on with task-state estimator on
+
+Commands:
+
+```text
+/tokenpilot mode conservative
+/tokenpilot mode normal
+/tokenpilot mode aggressive
+```
 
 ## Configuration
 
@@ -135,6 +152,9 @@ Minimal shape:
 ```json
 {
   "plugins": {
+    "slots": {
+      "contextEngine": "layered-context"
+    },
     "entries": {
       "tokenpilot": {
         "enabled": true,
@@ -256,6 +276,21 @@ Minimal example with upstream fallback:
   }
 }
 ```
+
+### Mode-to-Parameter Mapping
+
+The install script applies `normal` mode by default.
+
+| Mode | `modules.stabilizer` | `modules.reduction` | `modules.eviction` | `eviction.enabled` | `taskStateEstimator.enabled` | `reduction.triggerMinChars` | `reduction.maxToolChars` | Reduction profile |
+| :-- | :--: | :--: | :--: | :--: | :--: | --: | --: | :-- |
+| `conservative` | on | on | off | off | off | `4000` | `1800` | only repeated-read dedup + tool payload trim + startup optimization |
+| `normal` | on | on | off | off | off | `2200` | `1200` | full reduction defaults |
+| `aggressive` | on | on | on | on | on | `1400` | `900` | full reduction defaults with eviction |
+
+For the current public defaults:
+
+- `normal` and `aggressive` both enable `htmlSlimming`, `execOutputTruncation`, `formatSlimming`, `formatCleaning`, `pathTruncation`, `imageDownsample`, and `lineNumberStrip`
+- `conservative` leaves those extra cleanup passes off and keeps only the two most direct reduction passes plus startup optimization
 
 ## Runtime State
 

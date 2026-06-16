@@ -109,7 +109,7 @@
         "properties": {
           "enabled": {
             "type": "boolean",
-            "default": false
+            "default": true
           },
           "pruneThresholdChars": {
             "type": "number",
@@ -147,17 +147,17 @@
         "properties": {
           "stabilizer": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "description": "Enable stabilizer telemetry module."
           },
           "policy": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "description": "Enable decision/policy module."
           },
           "reduction": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "description": "Enable reduction execution module."
           },
           "eviction": {
@@ -412,23 +412,23 @@
             "properties": {
               "repeatedReadDedup": {
                 "type": "boolean",
-                "default": false
+                "default": true
               },
               "toolPayloadTrim": {
                 "type": "boolean",
-                "default": false
+                "default": true
               },
               "htmlSlimming": {
                 "type": "boolean",
-                "default": false
+                "default": true
               },
               "execOutputTruncation": {
                 "type": "boolean",
-                "default": false
+                "default": true
               },
               "agentsStartupOptimization": {
                 "type": "boolean",
-                "default": false
+                "default": true
               },
               "memoryFaultRecovery": {
                 "type": "boolean",

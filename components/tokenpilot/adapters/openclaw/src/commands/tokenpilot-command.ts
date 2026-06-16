@@ -9,8 +9,10 @@ import {
   summarizeTokenPilotStatus,
 } from "./tokenpilot/presentation.js";
 import {
+  RUNTIME_MODE_PRESETS,
   REDUCTION_PASS_PATHS,
   REDUCTION_PRESETS,
+  applyRuntimeMode,
   applyReductionPreset,
   ensurePluginConfig,
   ensurePluginEntry,
@@ -142,6 +144,18 @@ async function handleReduction(api: any, currentConfig: Record<string, unknown>,
   }
 
   return { text: formatTokenPilotHelp("reduction") };
+}
+
+async function handleMode(api: any, currentConfig: Record<string, unknown>, rest: string): Promise<{ text: string }> {
+  const modeName = splitArgs(rest)[0]?.toLowerCase() ?? "";
+  if (!RUNTIME_MODE_PRESETS[modeName]) {
+    return { text: "Usage: /tokenpilot mode <conservative|normal|aggressive>" };
+  }
+
+  return writeUpdatedConfig(api, currentConfig, (nextConfig) => {
+    applyRuntimeMode(nextConfig, modeName);
+    return `✅ Runtime mode = ${modeName}`;
+  });
 }
 
 async function handleEviction(api: any, currentConfig: Record<string, unknown>, rest: string): Promise<{ text: string }> {
@@ -276,6 +290,10 @@ export function registerTokenPilotCommand(api: any, logger: { debug?: (...args: 
 
     if (action === "visual") {
       return handleVisual(currentConfig);
+    }
+
+    if (action === "mode") {
+      return handleMode(api, currentConfig, rest);
     }
 
     if (action === "settings") {

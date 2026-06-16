@@ -1,5 +1,6 @@
 export const TOKENPILOT_CONFIG_ROOT = ["plugins", "entries", "tokenpilot", "config"] as const;
 export const TOKENPILOT_ENTRY_ROOT = ["plugins", "entries", "tokenpilot"] as const;
+export const CONTEXT_ENGINE_SLOT_ROOT = ["plugins", "slots", "contextEngine"] as const;
 
 export const REDUCTION_PASS_PATHS: Record<string, string[]> = {
   repeatedReadDedup: ["reduction", "passes", "repeatedReadDedup"],
@@ -73,6 +74,31 @@ export const REDUCTION_PRESETS: Record<
       imageDownsample: true,
       lineNumberStrip: true,
     },
+  },
+};
+
+export const RUNTIME_MODE_PRESETS: Record<
+  string,
+  {
+    reductionPreset: "light" | "balanced" | "aggressive";
+    evictionEnabled: boolean;
+    taskStateEstimatorEnabled: boolean;
+  }
+> = {
+  conservative: {
+    reductionPreset: "light",
+    evictionEnabled: false,
+    taskStateEstimatorEnabled: false,
+  },
+  normal: {
+    reductionPreset: "balanced",
+    evictionEnabled: false,
+    taskStateEstimatorEnabled: false,
+  },
+  aggressive: {
+    reductionPreset: "aggressive",
+    evictionEnabled: true,
+    taskStateEstimatorEnabled: true,
   },
 };
 
@@ -218,6 +244,26 @@ export function applyReductionPreset(config: Record<string, unknown>, presetName
     const passPath = REDUCTION_PASS_PATHS[passName];
     if (passPath) setNestedValue(pluginCfg, passPath, enabled);
   }
+}
+
+export function applyRuntimeMode(config: Record<string, unknown>, modeName: string): void {
+  const preset = RUNTIME_MODE_PRESETS[modeName];
+  if (!preset) return;
+
+  const entry = ensurePluginEntry(config);
+  const pluginCfg = ensurePluginConfig(config);
+  entry.enabled = true;
+  pluginCfg.enabled = true;
+
+  setNestedValue(config, CONTEXT_ENGINE_SLOT_ROOT, "layered-context");
+  setNestedValue(pluginCfg, ["contextEngine", "enabled"], true);
+  setNestedValue(pluginCfg, ["modules", "stabilizer"], true);
+  setNestedValue(pluginCfg, ["modules", "policy"], true);
+  setNestedValue(pluginCfg, ["modules", "reduction"], true);
+  setNestedValue(pluginCfg, ["modules", "eviction"], preset.evictionEnabled);
+  setNestedValue(pluginCfg, ["eviction", "enabled"], preset.evictionEnabled);
+  setNestedValue(pluginCfg, ["taskStateEstimator", "enabled"], preset.taskStateEstimatorEnabled);
+  applyReductionPreset(config, preset.reductionPreset);
 }
 
 export async function writeUpdatedConfig(

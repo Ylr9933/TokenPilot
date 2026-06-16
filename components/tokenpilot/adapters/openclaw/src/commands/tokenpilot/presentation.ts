@@ -1,4 +1,5 @@
 import {
+  RUNTIME_MODE_PRESETS,
   REDUCTION_PASS_PATHS,
   countModeLabel,
   formatDisplayValue,
@@ -83,6 +84,7 @@ export function formatTokenPilotHelp(section?: string): string {
     "/tokenpilot help [stabilizer|reduction|eviction]",
     "/tokenpilot report",
     "/tokenpilot visual",
+    "/tokenpilot mode <conservative|normal|aggressive>",
     "/tokenpilot settings details <on|off>",
     "/tokenpilot stabilizer ...",
     "/tokenpilot reduction ...",
@@ -97,6 +99,7 @@ export function formatTokenPilotHelp(section?: string): string {
     "/tokenpilot report",
     "/tokenpilot doctor",
     "/tokenpilot visual",
+    "/tokenpilot mode normal",
     "/tokenpilot settings details on",
     "/tokenpilot reduction mode balanced",
     "/tokenpilot reduction pass toolPayloadTrim off",
@@ -113,11 +116,30 @@ export function summarizeTokenPilotStatus(cfg: Record<string, unknown>): string 
   const reductionEnabled = getNestedValue(pluginCfg, ["modules", "reduction"]);
   const evictionEnabled = Boolean(getNestedValue(pluginCfg, ["modules", "eviction"])) && Boolean(getNestedValue(pluginCfg, ["eviction", "enabled"]));
   const estimatorEnabled = getNestedValue(pluginCfg, ["taskStateEstimator", "enabled"]);
+  const triggerMinChars = getNestedValue(pluginCfg, ["reduction", "triggerMinChars"]);
+  const maxToolChars = getNestedValue(pluginCfg, ["reduction", "maxToolChars"]);
+  const modeLabel = Object.entries(RUNTIME_MODE_PRESETS).find(([, preset]) => {
+    const reductionPreset =
+      preset.reductionPreset === "light"
+        ? [4000, 1800]
+        : preset.reductionPreset === "balanced"
+          ? [2200, 1200]
+          : [1400, 900];
+    return (
+      stabilizerEnabled === true
+      && reductionEnabled === true
+      && evictionEnabled === preset.evictionEnabled
+      && estimatorEnabled === preset.taskStateEstimatorEnabled
+      && triggerMinChars === reductionPreset[0]
+      && maxToolChars === reductionPreset[1]
+    );
+  })?.[0] ?? "custom";
 
   return [
     "TokenPilot status:",
     `- entry.enabled: ${formatOnOff(entry?.enabled)}`,
     `- config.enabled: ${formatOnOff(pluginCfg?.enabled)}`,
+    `- mode: ${modeLabel}`,
     `- stabilizer: ${formatOnOff(stabilizerEnabled)}`,
     `- reduction: ${formatOnOff(reductionEnabled)}`,
     `- lifecycle eviction: ${formatOnOff(evictionEnabled)}`,

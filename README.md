@@ -66,6 +66,8 @@ The installer will:
 - install it into `~/.openclaw/extensions/tokenpilot`
 - update `~/.openclaw/openclaw.json`
 - enable the TokenPilot plugin entry
+- switch `plugins.slots.contextEngine` to `layered-context`
+- apply the default `normal` runtime mode
 - try to restart the OpenClaw gateway automatically
 
 <span id='quickstart'/>
@@ -104,6 +106,8 @@ You should see a status block similar to:
 
 - plugin entry enabled
 - config enabled
+- mode `normal`
+- context engine slot `layered-context`
 - stabilizer enabled
 - reduction enabled
 
@@ -113,12 +117,14 @@ For a fuller runtime summary, run:
 /lightmem2 report
 /lightmem2 doctor
 /lightmem2 visual
+/lightmem2 mode normal
 ```
 
 `/lightmem2 doctor` is the quickest integration self-check for the current
 OpenClaw adapter surface.
 `/lightmem2 visual` opens the local visual inspector for stability, reduction,
 and eviction snapshots.
+`/lightmem2 mode <conservative|normal|aggressive>` switches preset runtime behavior.
 
 ### 3. Run the Built-In Smoke Test
 
@@ -269,6 +275,7 @@ The first in-session commands to care about are:
 /lightmem2 report
 /lightmem2 doctor
 /lightmem2 visual
+/lightmem2 mode normal
 /lightmem2 help
 ```
 
@@ -278,6 +285,7 @@ Use them in that order:
 - `/lightmem2 report` shows savings after a few turns
 - `/lightmem2 doctor` checks the current OpenClaw adapter installation and config surface
 - `/lightmem2 visual` opens the local visualization page for runtime effects
+- `/lightmem2 mode <conservative|normal|aggressive>` switches preset runtime behavior
 - `/lightmem2 help` shows the full command surface
 
 For full command details, runtime state, and debugging notes, see:
@@ -397,6 +405,23 @@ plugin entry:
     }
   }
 }
+```
+
+### Default Runtime Mode
+
+The current install path applies `normal` mode by default and sets
+`plugins.slots.contextEngine` to `layered-context`.
+
+- `conservative`: stabilizer on, lighter reduction preset, eviction off
+- `normal`: stabilizer on, balanced reduction preset, eviction off
+- `aggressive`: stabilizer on, aggressive reduction preset, eviction on with task-state estimator on
+
+You can switch modes in-session with:
+
+```text
+/lightmem2 mode conservative
+/lightmem2 mode normal
+/lightmem2 mode aggressive
 ```
 
 ### Minimal Runtime Config

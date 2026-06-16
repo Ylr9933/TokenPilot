@@ -4,14 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 DEFAULT_OPENCLAW_HOME="${HOME}"
-OPENCLAW_HOME="${TOKENPILOT_OPENCLAW_HOME:-${DEFAULT_OPENCLAW_HOME}}"
+OPENCLAW_HOME="${LIGHTMEM2_OPENCLAW_HOME:-${TOKENPILOT_OPENCLAW_HOME:-${DEFAULT_OPENCLAW_HOME}}}"
 export HOME="${OPENCLAW_HOME}"
 export XDG_CACHE_HOME="${HOME}/.cache"
 export XDG_CONFIG_HOME="${HOME}/.config"
 mkdir -p "${XDG_CACHE_HOME}" "${XDG_CONFIG_HOME}"
 CONFIG_PATH="${OPENCLAW_CONFIG_PATH:-$HOME/.openclaw/openclaw.json}"
-OPENCLAW_PROFILE="${OPENCLAW_PROFILE:-}"
-OPENCLAW_STATE_DIR="${OPENCLAW_STATE_DIR:-$HOME/.openclaw}"
+OPENCLAW_PROFILE="${LIGHTMEM2_OPENCLAW_PROFILE:-${OPENCLAW_PROFILE:-}}"
+OPENCLAW_STATE_DIR="${LIGHTMEM2_OPENCLAW_STATE_DIR:-${OPENCLAW_STATE_DIR:-$HOME/.openclaw}}"
 OPENCLAW_GATEWAY_PORT="${OPENCLAW_GATEWAY_PORT:-}"
 DEV_PLUGIN_PATH="${PLUGIN_DIR}"
 INSTALLED_PLUGIN_PATH="${HOME}/.openclaw/extensions/tokenpilot"
@@ -65,6 +65,72 @@ import json
 import os
 import sys
 
+MODE_PRESETS = {
+    "conservative": {
+        "triggerMinChars": 4000,
+        "maxToolChars": 1800,
+        "eviction": False,
+        "taskStateEstimator": False,
+        "passes": {
+            "repeatedReadDedup": True,
+            "toolPayloadTrim": True,
+            "htmlSlimming": False,
+            "execOutputTruncation": False,
+            "agentsStartupOptimization": True,
+            "memoryFaultRecovery": False,
+        },
+        "passOptions": {
+            "formatSlimming": False,
+            "formatCleaning": False,
+            "pathTruncation": False,
+            "imageDownsample": False,
+            "lineNumberStrip": False,
+        },
+    },
+    "normal": {
+        "triggerMinChars": 2200,
+        "maxToolChars": 1200,
+        "eviction": False,
+        "taskStateEstimator": False,
+        "passes": {
+            "repeatedReadDedup": True,
+            "toolPayloadTrim": True,
+            "htmlSlimming": True,
+            "execOutputTruncation": True,
+            "agentsStartupOptimization": True,
+            "memoryFaultRecovery": False,
+        },
+        "passOptions": {
+            "formatSlimming": True,
+            "formatCleaning": True,
+            "pathTruncation": True,
+            "imageDownsample": True,
+            "lineNumberStrip": True,
+        },
+    },
+    "aggressive": {
+        "triggerMinChars": 1400,
+        "maxToolChars": 900,
+        "eviction": True,
+        "taskStateEstimator": True,
+        "passes": {
+            "repeatedReadDedup": True,
+            "toolPayloadTrim": True,
+            "htmlSlimming": True,
+            "execOutputTruncation": True,
+            "agentsStartupOptimization": True,
+            "memoryFaultRecovery": False,
+        },
+        "passOptions": {
+            "formatSlimming": True,
+            "formatCleaning": True,
+            "pathTruncation": True,
+            "imageDownsample": True,
+            "lineNumberStrip": True,
+        },
+    },
+}
+
 config_path = sys.argv[1]
 post_install = sys.argv[2] == "1"
 
@@ -72,6 +138,9 @@ with open(config_path, "r", encoding="utf-8") as f:
     cfg = json.load(f)
 
 plugins = cfg.setdefault("plugins", {})
+slots = plugins.setdefault("slots", {})
+if post_install:
+    slots["contextEngine"] = "layered-context"
 load_cfg = plugins.get("load")
 if isinstance(load_cfg, dict):
     paths = load_cfg.get("paths")
@@ -196,20 +265,21 @@ if post_install:
     reduction_cfg = tokenpilot_cfg.get("reduction")
     if not isinstance(reduction_cfg, dict):
         reduction_cfg = {}
+    mode_preset = MODE_PRESETS["normal"]
     reduction_cfg["engine"] = "layered"
-    reduction_cfg["triggerMinChars"] = max(256, int(reduction_cfg.get("triggerMinChars") or 2200))
-    reduction_cfg["maxToolChars"] = max(256, int(reduction_cfg.get("maxToolChars") or 1200))
+    reduction_cfg["triggerMinChars"] = max(256, int(reduction_cfg.get("triggerMinChars") or mode_preset["triggerMinChars"]))
+    reduction_cfg["maxToolChars"] = max(256, int(reduction_cfg.get("maxToolChars") or mode_preset["maxToolChars"]))
 
     passes = reduction_cfg.get("passes")
     if not isinstance(passes, dict):
         passes = {}
     reduction_cfg["passes"] = {
-        "repeatedReadDedup": bool(passes.get("repeatedReadDedup", True)),
-        "toolPayloadTrim": bool(passes.get("toolPayloadTrim", True)),
-        "htmlSlimming": bool(passes.get("htmlSlimming", True)),
-        "execOutputTruncation": bool(passes.get("execOutputTruncation", True)),
-        "agentsStartupOptimization": bool(passes.get("agentsStartupOptimization", True)),
-        "memoryFaultRecovery": bool(passes.get("memoryFaultRecovery", False)),
+        "repeatedReadDedup": bool(passes.get("repeatedReadDedup", mode_preset["passes"]["repeatedReadDedup"])),
+        "toolPayloadTrim": bool(passes.get("toolPayloadTrim", mode_preset["passes"]["toolPayloadTrim"])),
+        "htmlSlimming": bool(passes.get("htmlSlimming", mode_preset["passes"]["htmlSlimming"])),
+        "execOutputTruncation": bool(passes.get("execOutputTruncation", mode_preset["passes"]["execOutputTruncation"])),
+        "agentsStartupOptimization": bool(passes.get("agentsStartupOptimization", mode_preset["passes"]["agentsStartupOptimization"])),
+        "memoryFaultRecovery": bool(passes.get("memoryFaultRecovery", mode_preset["passes"]["memoryFaultRecovery"])),
     }
 
     pass_options = reduction_cfg.get("passOptions")
@@ -217,22 +287,31 @@ if post_install:
         pass_options = {}
     reduction_cfg["passOptions"] = {
         "formatSlimming": {
-            "enabled": bool(((pass_options.get("formatSlimming") or {}) if isinstance(pass_options.get("formatSlimming"), dict) else {}).get("enabled", True))
+            "enabled": bool(((pass_options.get("formatSlimming") or {}) if isinstance(pass_options.get("formatSlimming"), dict) else {}).get("enabled", mode_preset["passOptions"]["formatSlimming"]))
         },
         "formatCleaning": {
-            "enabled": bool(((pass_options.get("formatCleaning") or {}) if isinstance(pass_options.get("formatCleaning"), dict) else {}).get("enabled", True))
+            "enabled": bool(((pass_options.get("formatCleaning") or {}) if isinstance(pass_options.get("formatCleaning"), dict) else {}).get("enabled", mode_preset["passOptions"]["formatCleaning"]))
         },
         "pathTruncation": {
-            "enabled": bool(((pass_options.get("pathTruncation") or {}) if isinstance(pass_options.get("pathTruncation"), dict) else {}).get("enabled", True))
+            "enabled": bool(((pass_options.get("pathTruncation") or {}) if isinstance(pass_options.get("pathTruncation"), dict) else {}).get("enabled", mode_preset["passOptions"]["pathTruncation"]))
         },
         "imageDownsample": {
-            "enabled": bool(((pass_options.get("imageDownsample") or {}) if isinstance(pass_options.get("imageDownsample"), dict) else {}).get("enabled", True))
+            "enabled": bool(((pass_options.get("imageDownsample") or {}) if isinstance(pass_options.get("imageDownsample"), dict) else {}).get("enabled", mode_preset["passOptions"]["imageDownsample"]))
         },
         "lineNumberStrip": {
-            "enabled": bool(((pass_options.get("lineNumberStrip") or {}) if isinstance(pass_options.get("lineNumberStrip"), dict) else {}).get("enabled", True))
+            "enabled": bool(((pass_options.get("lineNumberStrip") or {}) if isinstance(pass_options.get("lineNumberStrip"), dict) else {}).get("enabled", mode_preset["passOptions"]["lineNumberStrip"]))
         },
     }
     tokenpilot_cfg["reduction"] = reduction_cfg
+
+    task_state_estimator_cfg = tokenpilot_cfg.get("taskStateEstimator")
+    if not isinstance(task_state_estimator_cfg, dict):
+        task_state_estimator_cfg = {}
+    task_state_estimator_cfg["enabled"] = bool(task_state_estimator_cfg.get("enabled", mode_preset["taskStateEstimator"]))
+    tokenpilot_cfg["taskStateEstimator"] = task_state_estimator_cfg
+
+    tokenpilot_cfg["modules"]["eviction"] = bool(tokenpilot_cfg["modules"].get("eviction", mode_preset["eviction"]))
+    tokenpilot_cfg["eviction"]["enabled"] = bool(tokenpilot_cfg["eviction"].get("enabled", mode_preset["eviction"]))
 
 if isinstance(entries, dict) and not entries:
     plugins.pop("entries", None)

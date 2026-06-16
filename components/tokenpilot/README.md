@@ -1,6 +1,6 @@
 # TokenPilot Component
 
-TokenPilot is the current OpenClaw runtime component inside LightMem2.
+TokenPilot is the current public runtime component inside LightMem2.
 It targets a practical long-running-session problem: prompt history grows, tool outputs accumulate, cache reuse becomes unstable, and shared sessions become increasingly expensive.
 
 Within the current LightMem2 runtime path, TokenPilot primarily addresses this through:
@@ -17,6 +17,9 @@ Use the root [README.md](../../README.md) for the fastest first-run path:
 - install the plugin
 - open a `tokenpilot/<model>` session
 - verify with `/tokenpilot status`
+
+Use [components/README.md](../README.md) if you want the framework-level
+component index before diving into TokenPilot-specific details.
 
 Use this component README when you need TokenPilot-specific details:
 

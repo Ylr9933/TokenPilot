@@ -160,6 +160,7 @@ The smoke script will:
 
 Once the basic runtime path is working, use these component-level docs:
 
+- [components/README.md](./components/README.md) for the framework-level component index
 - [components/tokenpilot/README.md](./components/tokenpilot/README.md) for TokenPilot commands, configuration, runtime state, and debugging
 - [experiments/README.md](./experiments/README.md) for benchmark reproduction entrypoints
 
@@ -176,6 +177,7 @@ The current public repository is centered on the first released component:
 
 The root README stays focused on the fastest path to a successful first run.
 Component-specific details live under each component subtree so the repo can scale without turning the root page into a full manual.
+The framework-level component index lives at [components/README.md](./components/README.md).
 
 <span id='architecture'/>
 
@@ -227,8 +229,8 @@ Recommended reproduction flow:
 3. Follow the benchmark-specific README for dataset assets, environment setup, and official runner commands.
 4. Run the benchmark from its `scripts/run_baseline.sh` or `scripts/run_method.sh` entrypoint.
 
-The root README only provides the public entry to the reproduction surface.
-Detailed setup notes, benchmark-specific assets, and exact commands live inside the corresponding `experiments/` subdirectories.
+For the current public repo, those experiment surfaces are tied to the
+TokenPilot component path under `experiments/tokenpilot/`.
 
 <span id='examples'/>
 

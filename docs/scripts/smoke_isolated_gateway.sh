@@ -7,17 +7,22 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 SRC_HOME="${SRC_HOME:-$(dirname "${REPO_ROOT}")}"
-SMOKE_HOME="${SMOKE_HOME:-/tmp/tokenpilot-smoke-home}"
+SMOKE_HOME="${SMOKE_HOME:-/tmp/lightmem2-smoke-home}"
 GATEWAY_PORT="${GATEWAY_PORT:-28890}"
 PROXY_PORT="${PROXY_PORT:-17690}"
-UPSTREAM_BASE_URL="${TOKENPILOT_BASE_URL:-https://kuaipao.ai/v1}"
-UPSTREAM_API_KEY="${TOKENPILOT_API_KEY:-}"
-UPSTREAM_HTTP_PROXY="${TOKENPILOT_UPSTREAM_HTTP_PROXY:-http://127.0.0.1:4444}"
-UPSTREAM_HTTPS_PROXY="${TOKENPILOT_UPSTREAM_HTTPS_PROXY:-$UPSTREAM_HTTP_PROXY}"
-UPSTREAM_NO_PROXY="${TOKENPILOT_UPSTREAM_NO_PROXY:-127.0.0.1,localhost}"
+UPSTREAM_BASE_URL="${LIGHTMEM2_BASE_URL:-${TOKENPILOT_BASE_URL:-}}"
+UPSTREAM_API_KEY="${LIGHTMEM2_API_KEY:-${TOKENPILOT_API_KEY:-}}"
+UPSTREAM_HTTP_PROXY="${LIGHTMEM2_UPSTREAM_HTTP_PROXY:-${TOKENPILOT_UPSTREAM_HTTP_PROXY:-}}"
+UPSTREAM_HTTPS_PROXY="${LIGHTMEM2_UPSTREAM_HTTPS_PROXY:-${TOKENPILOT_UPSTREAM_HTTPS_PROXY:-$UPSTREAM_HTTP_PROXY}}"
+UPSTREAM_NO_PROXY="${LIGHTMEM2_UPSTREAM_NO_PROXY:-${TOKENPILOT_UPSTREAM_NO_PROXY:-127.0.0.1,localhost}}"
 STAMP="$(date +%s)"
 RUNTIME_HOME="${SMOKE_HOME}/${STAMP}"
 LOG_FILE="${RUNTIME_HOME}/gateway.log"
+
+if [[ -z "${UPSTREAM_BASE_URL}" || -z "${UPSTREAM_API_KEY}" ]]; then
+  echo "Missing upstream config. Set LIGHTMEM2_BASE_URL and LIGHTMEM2_API_KEY first." >&2
+  exit 2
+fi
 
 # Setup runtime home
 mkdir -p "${RUNTIME_HOME}"
@@ -58,7 +63,25 @@ providers['tokenpilot'] = {
         },
     ],
 }
-obj.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = 'tokenpilot/gpt-5.4-mini'
+providers['lightmem2'] = {
+    'baseUrl': f"http://127.0.0.1:{int(${PROXY_PORT@Q})}/v1",
+    'apiKey': 'tokenpilot-local',
+    'api': 'openai-responses',
+    'authHeader': False,
+    'models': [
+        {
+            'id': 'gpt-5.4-mini',
+            'name': 'gpt-5.4-mini',
+            'api': 'openai-responses',
+            'reasoning': False,
+            'input': ['text', 'image'],
+            'cost': {'input': 0, 'output': 0, 'cacheRead': 0, 'cacheWrite': 0},
+            'contextWindow': 128000,
+            'maxTokens': 16384,
+        },
+    ],
+}
+obj.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = 'lightmem2/gpt-5.4-mini'
 obj['agents']['defaults']['model']['fallbacks'] = []
 with open(p, 'w', encoding='utf-8') as f:
     json.dump(obj, f, indent=2, ensure_ascii=False)
@@ -71,6 +94,9 @@ nohup env \
   HOME="${RUNTIME_HOME}" \
   XDG_CACHE_HOME="${RUNTIME_HOME}/.cache" \
   XDG_CONFIG_HOME="${RUNTIME_HOME}/.config" \
+  LIGHTMEM2_UPSTREAM_HTTP_PROXY="${UPSTREAM_HTTP_PROXY}" \
+  LIGHTMEM2_UPSTREAM_HTTPS_PROXY="${UPSTREAM_HTTPS_PROXY}" \
+  LIGHTMEM2_UPSTREAM_NO_PROXY="${UPSTREAM_NO_PROXY}" \
   TOKENPILOT_UPSTREAM_HTTP_PROXY="${UPSTREAM_HTTP_PROXY}" \
   TOKENPILOT_UPSTREAM_HTTPS_PROXY="${UPSTREAM_HTTPS_PROXY}" \
   TOKENPILOT_UPSTREAM_NO_PROXY="${UPSTREAM_NO_PROXY}" \

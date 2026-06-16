@@ -20,11 +20,6 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
 }
 
-function shouldPreferChatCompletions(baseUrl: string): boolean {
-  const normalized = normalizeBaseUrl(baseUrl).toLowerCase();
-  return normalized.includes("dmxapi.cn");
-}
-
 function buildSystemPrompt(
   config: Required<Pick<TaskStateEstimatorApiConfig, "evictionLookaheadTurns" | "lifecycleMode" | "evidenceMode">>,
 ): string {
@@ -343,8 +338,6 @@ export function createApiTaskStateEstimator(
   const evictionLookaheadTurns = Math.max(1, cfg.evictionLookaheadTurns ?? 3);
   const lifecycleMode = cfg.lifecycleMode === "decoupled" ? "decoupled" : "coupled";
   const evidenceMode = cfg.evidenceMode === "two_state" ? "two_state" : "three_state";
-  const preferChatCompletions = shouldPreferChatCompletions(baseUrl);
-
   async function requestViaResponses(
     controller: AbortController,
     input: TaskStateEstimatorInput,
@@ -427,9 +420,6 @@ export function createApiTaskStateEstimator(
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
       try {
-        if (preferChatCompletions) {
-          return await requestViaChatCompletions(controller, input);
-        }
         try {
           return await requestViaResponses(controller, input);
         } catch (error) {

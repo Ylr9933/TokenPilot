@@ -9,7 +9,7 @@ source "${EXPERIMENT_ROOT}/scripts/common.sh"
 ce_import_runtime_envs
 ce_normalize_runtime_env
 
-TUZI_BASE_URL="${TUZI_BASE_URL:-https://coding.tu-zi.com/v1}"
+TUZI_BASE_URL="${TUZI_BASE_URL:-https://api.openai.com/v1}"
 TUZI_API_KEY="${TUZI_API_KEY:-}"
 MODEL="${CLAW_EVAL_MODEL:-tuzi/gpt-5.4-mini}"
 JUDGE_MODEL="${CLAW_EVAL_JUDGE_MODEL:-${MODEL}}"

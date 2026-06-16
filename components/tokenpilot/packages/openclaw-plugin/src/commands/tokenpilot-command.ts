@@ -1,5 +1,6 @@
 import { handleReport } from "./tokenpilot/session-report.js";
 import { handleVisual } from "./tokenpilot/session-visual.js";
+import { formatOpenClawDoctorReport, inspectOpenClawDoctor } from "./tokenpilot/openclaw-doctor.js";
 import {
   formatTokenPilotHelp,
   summarizeEvictionStatus,
@@ -267,6 +268,10 @@ export function registerTokenPilotCommand(api: any, logger: { debug?: (...args: 
 
     if (action === "report") {
       return handleReport(ctx, currentConfig);
+    }
+
+    if (action === "doctor") {
+      return { text: formatOpenClawDoctorReport(inspectOpenClawDoctor(currentConfig)) };
     }
 
     if (action === "visual") {

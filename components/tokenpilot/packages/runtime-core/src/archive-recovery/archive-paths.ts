@@ -21,6 +21,14 @@ export function currentStatePathResolver(): TokenPilotStatePathResolver | null {
   return statePathResolver;
 }
 
+export function pluginNamespaceDir(): string {
+  return statePathResolver?.roots.namespaceDir?.trim() || PLUGIN_NAMESPACE_DIR;
+}
+
+export function workspaceArchiveDirname(): string {
+  return statePathResolver?.roots.workspaceArchiveDirname?.trim() || WORKSPACE_ARCHIVE_DIRNAME;
+}
+
 export function defaultPluginStateDir(): string {
   if (statePathResolver) {
     return statePathResolver.defaultStateDir();
@@ -51,23 +59,23 @@ export function pluginStateDirWriteTargets(stateDir: string): string[] {
 }
 
 export function pluginStateSubdir(stateDir: string, ...parts: string[]): string {
-  return join(stateDir, PLUGIN_NAMESPACE_DIR, ...parts);
+  return join(stateDir, pluginNamespaceDir(), ...parts);
 }
 
 export function pluginStateSubdirCandidates(stateDir: string, ...parts: string[]): string[] {
-  return pluginStateDirCandidates(stateDir).map((root) => join(root, PLUGIN_NAMESPACE_DIR, ...parts));
+  return pluginStateDirCandidates(stateDir).map((root) => join(root, pluginNamespaceDir(), ...parts));
 }
 
 export function pluginStateSubdirWriteTargets(stateDir: string, ...parts: string[]): string[] {
-  return pluginStateDirWriteTargets(stateDir).map((root) => join(root, PLUGIN_NAMESPACE_DIR, ...parts));
+  return pluginStateDirWriteTargets(stateDir).map((root) => join(root, pluginNamespaceDir(), ...parts));
 }
 
 export function workspaceArchiveDir(workspaceDir: string): string {
-  return join(workspaceDir, WORKSPACE_ARCHIVE_DIRNAME);
+  return join(workspaceDir, workspaceArchiveDirname());
 }
 
 export function workspaceArchiveDirCandidates(workspaceDir: string): string[] {
-  return [join(workspaceDir, WORKSPACE_ARCHIVE_DIRNAME)];
+  return [join(workspaceDir, workspaceArchiveDirname())];
 }
 
 export function archiveDirWriteTargets(archiveDir: string): string[] {
@@ -82,7 +90,7 @@ export function defaultArchiveDir(sessionId: string, workspaceDir?: string): str
   if (match) {
     const runId = match[1];
     const jobId = match[2];
-    return `/tmp/pinchbench/${runId}/agent_workspace_j${jobId}/${WORKSPACE_ARCHIVE_DIRNAME}`;
+    return `/tmp/pinchbench/${runId}/agent_workspace_j${jobId}/${workspaceArchiveDirname()}`;
   }
   return pluginStateSubdir(defaultPluginStateDir(), "tool-result-archives", sanitizePathPart(sessionId));
 }
@@ -91,7 +99,7 @@ export function defaultArchiveLookupDirs(sessionId: string, stateDir?: string): 
   const dirs: string[] = [];
   const sessionMatch = sessionId.match(/-(\d+)-j(\d+)$/);
   if (sessionMatch) {
-    dirs.push(`/tmp/pinchbench/${sessionMatch[1]}/agent_workspace_j${sessionMatch[2]}/${WORKSPACE_ARCHIVE_DIRNAME}`);
+    dirs.push(`/tmp/pinchbench/${sessionMatch[1]}/agent_workspace_j${sessionMatch[2]}/${workspaceArchiveDirname()}`);
   }
   const resolvedStateDir = stateDir ?? defaultPluginStateDir();
   dirs.push(...pluginStateSubdirCandidates(resolvedStateDir, "tool-result-archives", sessionId));

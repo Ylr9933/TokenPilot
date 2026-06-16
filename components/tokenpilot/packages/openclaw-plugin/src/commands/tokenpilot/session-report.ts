@@ -3,8 +3,7 @@ import { extractScopedSessionKey } from "../../session/scoped-session-key.js";
 import { resolveSessionIdFromCommandScope } from "../../session/command-scope-map.js";
 import { loadRecentTurnBindingsFromState } from "../../session/turn-bindings.js";
 import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename } from "node:path";
 import {
   countModeLabel,
   formatInt,
@@ -13,6 +12,7 @@ import {
   resolveStateDir,
   toRecord,
 } from "./shared.js";
+import { resolveOpenClawSessionsRegistryPath } from "../../context-stack/integration/openclaw-paths.js";
 
 function normalizeSessionRef(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -48,7 +48,7 @@ function resolveOpenClawSessionIdFromSessionKey(sessionKey: string): string | un
   const segments = normalized.split(":");
   const agentId = segments[1]?.trim();
   if (!agentId) return undefined;
-  const registryPath = join(homedir(), ".openclaw", "agents", agentId, "sessions", "sessions.json");
+  const registryPath = resolveOpenClawSessionsRegistryPath(agentId);
   try {
     const parsed = JSON.parse(readFileSync(registryPath, "utf8"));
     const registry = toRecord(parsed);

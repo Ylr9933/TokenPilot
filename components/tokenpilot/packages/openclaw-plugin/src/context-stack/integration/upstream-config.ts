@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { readFile, writeFile } from "node:fs/promises";
 import type { UpstreamConfig, UpstreamModelDef } from "./upstream-types.js";
+import { resolveOpenClawConfigPath } from "./openclaw-paths.js";
 
 type DetectUpstreamOptions = {
   preferredProviderId?: string;
@@ -38,7 +37,7 @@ export async function detectUpstreamConfig(
   logger: { warn: (message: string) => void },
   options?: DetectUpstreamOptions,
 ): Promise<UpstreamConfig | null> {
-  const cfgPath = join(homedir(), ".openclaw", "openclaw.json");
+  const cfgPath = resolveOpenClawConfigPath();
   try {
     const raw = await readFile(cfgPath, "utf8");
     const parsed = JSON.parse(raw) as any;
@@ -89,7 +88,7 @@ export async function ensureExplicitProxyModelsInConfig(
   upstream: UpstreamConfig,
   logger: { warn: (message: string) => void; info: (message: string) => void },
 ): Promise<void> {
-  const cfgPath = join(homedir(), ".openclaw", "openclaw.json");
+  const cfgPath = resolveOpenClawConfigPath();
   try {
     const raw = await readFile(cfgPath, "utf8");
     const doc = JSON.parse(raw) as any;

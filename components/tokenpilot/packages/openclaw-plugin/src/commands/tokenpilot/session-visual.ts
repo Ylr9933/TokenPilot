@@ -1,19 +1,10 @@
 import { createServer, type Server } from "node:http";
-import { join } from "node:path";
+import { defaultPluginStateDir } from "@tokenpilot/runtime-core";
 import { readVisualSessionData, readVisualSessionList } from "./session-visual-data.js";
 import { renderVisualPageHtml, renderVisualPageScript } from "./session-visual-page.js";
 import { resolveStateDir } from "./shared.js";
 
 let visualServerState: { stateDir: string; server: Server; url: string } | null = null;
-
-function defaultPluginStateDir(): string {
-  const envStateDir = process.env.TOKENPILOT_STATE_DIR;
-  if (typeof envStateDir === "string" && envStateDir.trim().length > 0) {
-    return envStateDir.trim();
-  }
-  const homeDir = process.env.HOME || process.env.USERPROFILE || ".";
-  return join(homeDir, ".openclaw", "tokenpilot-plugin-state");
-}
 
 function sendJson(res: any, statusCode: number, payload: unknown): void {
   res.statusCode = statusCode;

@@ -1,9 +1,8 @@
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import {
   defaultPluginStateDir,
-  PLUGIN_STATE_DIRNAME,
+  pluginStateDirCandidates,
   pluginStateSubdirCandidates,
   pluginStateSubdirWriteTargets,
 } from "@tokenpilot/runtime-core";
@@ -16,14 +15,6 @@ export type CommandScopeBinding = {
 
 function commandScopeMapPathCandidates(stateDir: string): string[] {
   return pluginStateSubdirCandidates(stateDir, "controls", "command-scope-map.json");
-}
-
-function explicitHomeStateDirs(): string[] {
-  const home = homedir().trim();
-  if (!home) return [];
-  return [
-    join(home, ".openclaw", PLUGIN_STATE_DIRNAME),
-  ];
 }
 
 function normalizeTextPart(value: unknown): string {
@@ -96,7 +87,7 @@ export function persistCommandScopeBindings(stateDir: string, bindings: CommandS
     const seedDirs = new Set<string>([
       stateDir,
       defaultPluginStateDir(),
-      ...explicitHomeStateDirs(),
+      ...pluginStateDirCandidates(),
     ]);
 
     for (const dir of seedDirs) {

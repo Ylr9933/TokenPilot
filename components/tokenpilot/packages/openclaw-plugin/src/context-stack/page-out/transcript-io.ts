@@ -1,21 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHash } from "node:crypto";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { readdir, readFile } from "node:fs/promises";
 import type { TranscriptSessionRow } from "./transcript-types.js";
-
-function resolveOpenClawStateRoot(): string {
-  const explicit =
-    String(process.env.OPENCLAW_STATE_DIR ?? "").trim()
-    || String(process.env.OPENCLAW_HOME ?? "").trim();
-  if (explicit) return explicit;
-  return join(homedir(), ".openclaw");
-}
+import { resolveOpenClawAgentsDir } from "../integration/openclaw-paths.js";
 
 async function findTranscriptPathForSession(sessionId: string): Promise<string | null> {
-  const stateRoot = resolveOpenClawStateRoot();
-  const agentsDir = join(stateRoot, "agents");
+  const agentsDir = resolveOpenClawAgentsDir();
   try {
     const agentEntries = await readdir(agentsDir, { withFileTypes: true });
     for (const agentEntry of agentEntries) {

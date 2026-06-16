@@ -28,6 +28,7 @@ Use this component README when you need TokenPilot-specific details:
 - configuration reference
 - runtime state layout
 - debugging notes
+- host integration boundary
 
 ## Component Layout
 
@@ -43,6 +44,21 @@ components/tokenpilot/
         ├── decision/     # Reduction and eviction analysis / policy logic
         └── memory/       # Experimental memory layer still under active development
 ```
+
+## Host Integrations
+
+TokenPilot is being structured as a reusable LightMem2 component with host
+adapters, rather than as a permanently OpenClaw-only implementation.
+
+Current host integration index:
+
+- [HOSTS.md](./HOSTS.md)
+
+Current implementation status:
+
+- `OpenClaw`: production adapter
+- `Codex CLI`: planned
+- `Claude Code`: planned
 
 ## Runtime Commands
 

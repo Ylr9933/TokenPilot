@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  configureStatePathResolver,
   runReductionAfterCall as runLayerReductionAfterCall,
   runReductionBeforeCall as runLayerReductionBeforeCall,
   resolveReductionPasses as resolveLayerReductionPasses,
@@ -69,6 +70,7 @@ import { appendEvictionVisualSnapshot } from "./commands/tokenpilot/session-visu
 import { registerLayeredContextEngine, registerToolCallHooks, registerToolResultPersistHook } from "./plugin-register-hooks.js";
 import { __testHooks, contextSafeRecovery, proxyRuntimeHelpers } from "./plugin-test-support.js";
 import { createWorkspaceHintStore } from "./plugin-workspace-hints.js";
+import { createOpenClawStatePathResolver } from "./context-stack/integration/host-adapter.js";
 
 module.exports = {
   id: "tokenpilot",
@@ -77,6 +79,7 @@ module.exports = {
 
   register(api: any) {
     const logger = makeLogger(api?.logger);
+    configureStatePathResolver(createOpenClawStatePathResolver());
     const cfg = normalizeConfig(api?.pluginConfig);
     const { rememberWorkspaceHint, resolveWorkspaceHintForEvent } = createWorkspaceHintStore(
       extractSessionKey,

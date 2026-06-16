@@ -1,16 +1,30 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { TokenPilotStatePathResolver } from "@tokenpilot/host-adapter";
 
 export const PLUGIN_STATE_DIRNAME = "tokenpilot-plugin-state";
 export const PLUGIN_NAMESPACE_DIR = "tokenpilot";
 export const WORKSPACE_ARCHIVE_DIRNAME = ".tokenpilot-archives";
 
+let statePathResolver: TokenPilotStatePathResolver | null = null;
+
 export function sanitizePathPart(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "_");
 }
 
+export function configureStatePathResolver(resolver: TokenPilotStatePathResolver | null): void {
+  statePathResolver = resolver;
+}
+
+export function currentStatePathResolver(): TokenPilotStatePathResolver | null {
+  return statePathResolver;
+}
+
 export function defaultPluginStateDir(): string {
+  if (statePathResolver) {
+    return statePathResolver.defaultStateDir();
+  }
   const envStateDir = process.env.TOKENPILOT_STATE_DIR;
   if (typeof envStateDir === "string" && envStateDir.trim().length > 0) {
     return envStateDir.trim();
@@ -22,6 +36,9 @@ export function defaultPluginStateDir(): string {
 }
 
 export function pluginStateDirCandidates(explicitStateDir?: string): string[] {
+  if (statePathResolver) {
+    return statePathResolver.stateDirCandidates(explicitStateDir);
+  }
   if (explicitStateDir && explicitStateDir.trim().length > 0) {
     return [explicitStateDir.trim()];
   }

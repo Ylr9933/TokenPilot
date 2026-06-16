@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@tokenpilot/decision": "workspace:*",
+    "@tokenpilot/host-adapter": "workspace:*",
     "@tokenpilot/history": "workspace:*",
     "@tokenpilot/kernel": "workspace:*",
     "@tokenpilot/memory": "workspace:*",

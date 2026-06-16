@@ -18,6 +18,8 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  components/tokenpilot/packages/host-adapter: {}
+
   components/tokenpilot/packages/kernel: {}
 
   components/tokenpilot/packages/layers/decision:
@@ -52,6 +54,9 @@ importers:
       '@tokenpilot/history':
         specifier: workspace:*
         version: link:../layers/history
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../host-adapter
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../kernel
@@ -77,6 +82,9 @@ importers:
       '@tokenpilot/decision':
         specifier: workspace:*
         version: link:../layers/decision
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../host-adapter
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../kernel

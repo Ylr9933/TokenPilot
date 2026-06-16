@@ -26,6 +26,9 @@
             ],
             "@tokenpilot/runtime-core": [
                 "components/tokenpilot/packages/runtime-core/src/index.ts"
+            ],
+            "@tokenpilot/host-adapter": [
+                "components/tokenpilot/packages/host-adapter/src/index.ts"
             ]
         },
         "types": [

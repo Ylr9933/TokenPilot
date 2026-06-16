@@ -249,5 +249,4 @@ rg 'stable_prefix_rewrite|proxy_before_call_rewrite|proxy_after_call_rewrite|too
 More package-level adapter notes live in:
 
 - [packages/openclaw-plugin/README.md](./packages/openclaw-plugin/README.md)
-- [../../docs/run-guide.md](../../docs/run-guide.md)
 - [../../experiments/tokenpilot/README.md](../../experiments/tokenpilot/README.md)

@@ -162,7 +162,8 @@ Once the basic runtime path is working, use these component-level docs:
 
 - [components/README.md](./components/README.md) for the framework-level component index
 - [components/tokenpilot/README.md](./components/tokenpilot/README.md) for TokenPilot commands, configuration, runtime state, and debugging
-- [experiments/README.md](./experiments/README.md) for benchmark reproduction entrypoints
+- [experiments/README.md](./experiments/README.md) for top-level benchmark reproduction entrypoints
+- [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md) for the current TokenPilot benchmark hub
 
 <span id='components'/>
 
@@ -217,6 +218,10 @@ The root entry for experiment reproduction is:
 
 - [experiments/README.md](./experiments/README.md)
 
+The current component-level experiment hub is:
+
+- [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md)
+
 The currently documented benchmark subtrees are:
 
 - [experiments/tokenpilot/pinchbench/README.md](./experiments/tokenpilot/pinchbench/README.md)
@@ -226,8 +231,9 @@ Recommended reproduction flow:
 
 1. Finish the installation steps in this root README and verify the plugin in a real OpenClaw session.
 2. Open [experiments/README.md](./experiments/README.md) and choose the benchmark you want to reproduce.
-3. Follow the benchmark-specific README for dataset assets, environment setup, and official runner commands.
-4. Run the benchmark from its `scripts/run_baseline.sh` or `scripts/run_method.sh` entrypoint.
+3. Open [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md) for the current component-level benchmark index.
+4. Follow the benchmark-specific README for dataset assets, environment setup, and official runner commands.
+5. Run the benchmark from its `scripts/run_baseline.sh` or `scripts/run_method.sh` entrypoint.
 
 For the current public repo, those experiment surfaces are tied to the
 TokenPilot component path under `experiments/tokenpilot/`.
@@ -236,9 +242,7 @@ TokenPilot component path under `experiments/tokenpilot/`.
 
 ## 💡 Examples
 
-### Runtime Commands
-
-For a first successful run, the most useful commands are:
+The first three in-session commands to care about are:
 
 ```text
 /tokenpilot status
@@ -246,13 +250,13 @@ For a first successful run, the most useful commands are:
 /tokenpilot help
 ```
 
-Typical usage:
+Use them in that order:
 
-- run `/tokenpilot status` to confirm the component is active
-- run `/tokenpilot report` after a few turns to inspect runtime savings and optimization activity
-- run `/tokenpilot help` to view the full command entrypoint in-session
+- `/tokenpilot status` confirms the component is active
+- `/tokenpilot report` shows savings after a few turns
+- `/tokenpilot help` shows the full command surface
 
-For the full TokenPilot command surface and package-level notes, see:
+For full command details, runtime state, and debugging notes, see:
 
 - [components/tokenpilot/README.md](./components/tokenpilot/README.md)
 
@@ -264,6 +268,11 @@ The tables below summarize the current LightMem2 runtime path, implemented today
 
 `Isolated` mode evaluates each task in a fresh session, focusing on single-task behavior without cross-task history carryover.
 `Continuous` mode evaluates longer-running shared-session workflows, where context accumulation and cache reuse matter much more.
+
+For exact reproduction commands, start from:
+
+- [experiments/README.md](./experiments/README.md)
+- [experiments/tokenpilot/README.md](./experiments/tokenpilot/README.md)
 
 ### PinchBench
 

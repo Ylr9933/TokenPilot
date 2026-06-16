@@ -555,6 +555,6 @@ We thank all the contributors to this project, more contributors are welcome!
 - [MemoBrain](https://github.com/qhjqhj00/MemoBrain) — Executive memory for long-horizon reasoning agents
 - [AgentSwing](https://github.com/Alibaba-NLP/DeepResearch) — Adaptive parallel context management routing for web agents
 - [MemOS](https://github.com/MemTensor/MemOS) — Memory operating system for LLM agents
-- [LightMem](https://github.com/zjunlp/LightMem) — Lightweight memory-augmented generation (ICLR 2026)
+- [LightMem](https://github.com/zjunlp/LightMem) — Lightweight memory-augmented generation
 
 🙌 We thank all the contributors to this project, and welcome further contributions from the community. We also thank the authors of the baseline methods evaluated in our experiments, including [LLMLingua-2](https://github.com/microsoft/LLMLingua), [SelectiveContext](https://github.com/liyucheng09/Selective_Context), [Pichay](https://github.com/fsgeek/pichay), [MemoBrain](https://github.com/qhjqhj00/MemoBrain), [AgentSwing](https://github.com/Alibaba-NLP/DeepResearch), and [MemOS](https://github.com/MemTensor/MemOS), for making their work publicly available.

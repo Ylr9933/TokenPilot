@@ -2,7 +2,7 @@
 import {
   loadRawSemanticTurnRecord,
   persistRawSemanticTurnRecord,
-} from "../../../../layers/history/src/raw-semantic.js";
+} from "@tokenpilot/history";
 import { readTranscriptMessagesForSession, transcriptMessageStableId } from "./transcript-io.js";
 import {
   dedupeRawSemanticMessages,

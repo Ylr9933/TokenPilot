@@ -1,4 +1,4 @@
-import type { RawSemanticTurnRecord } from "../../../../layers/history/src/types.js";
+import type { RawSemanticTurnRecord } from "@tokenpilot/history";
 
 export function dedupeRawSemanticMessages(
   record: RawSemanticTurnRecord["messages"],

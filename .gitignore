@@ -6,6 +6,8 @@ coverage/
 *.tsbuildinfo
 components/tokenpilot/packages/openclaw-plugin/.tmp/
 components/tokenpilot/packages/openclaw-plugin/*.tgz
+components/tokenpilot/adapters/openclaw/.tmp/
+components/tokenpilot/adapters/openclaw/*.tgz
 
 log/
 

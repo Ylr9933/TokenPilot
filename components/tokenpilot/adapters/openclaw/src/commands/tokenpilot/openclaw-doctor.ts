@@ -119,7 +119,7 @@ export function formatOpenClawDoctorReport(report: OpenClawDoctorReport): string
   if (!report.ok) {
     lines.push("");
     lines.push("Suggested fix:");
-    lines.push("- run `npm run install:release` in `components/tokenpilot/packages/openclaw-plugin`");
+    lines.push("- run `npm run install:release` in `components/tokenpilot/adapters/openclaw`");
   }
 
   return lines.join("\n");

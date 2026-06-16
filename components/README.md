@@ -30,10 +30,11 @@ Use a component subtree when you need component-specific material such as:
 ```text
 components/
 └── tokenpilot/
+    ├── adapters/
+    │   └── openclaw/
     ├── README.md
     └── packages/
         ├── host-adapter/
-        ├── openclaw-plugin/
         ├── runtime-core/
         ├── kernel/
         └── layers/

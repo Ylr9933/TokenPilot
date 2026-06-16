@@ -201,9 +201,10 @@ At this stage, the host adapter boundary, runtime engine, shared contracts, and 
 LightMem2/
 ├── components/
 │   └── tokenpilot/
+│       ├── adapters/
+│       │   └── openclaw/         # current production host adapter for OpenClaw
 │       └── packages/
-│           ├── host-adapter/    # Shared host-adapter contracts and path-resolution interfaces
-│           ├── openclaw-plugin/  # current production host adapter for OpenClaw
+│           ├── host-adapter/     # Shared host-adapter contracts and path-resolution interfaces
 │           ├── runtime-core/     # Host-agnostic runtime engine and shared execution logic
 │           ├── kernel/           # Shared types, interfaces, events, and runtime contracts
 │           └── layers/           # Stateful and policy-oriented logic

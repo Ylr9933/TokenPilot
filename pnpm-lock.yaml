@@ -46,7 +46,7 @@ importers:
         specifier: workspace:*
         version: link:../history
 
-  components/tokenpilot/packages/openclaw-plugin:
+  components/tokenpilot/adapters/openclaw:
     dependencies:
       '@tokenpilot/decision':
         specifier: workspace:*

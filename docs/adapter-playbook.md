@@ -77,7 +77,7 @@ If adapter-specific tests exist, run the relevant package test command as well.
 
 The current reference adapter is:
 
-- [components/tokenpilot/packages/openclaw-plugin/README.md](../components/tokenpilot/packages/openclaw-plugin/README.md)
+- [components/tokenpilot/adapters/openclaw/README.md](../components/tokenpilot/adapters/openclaw/README.md)
 
 The current host integration index is:
 

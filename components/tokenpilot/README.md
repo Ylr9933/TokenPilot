@@ -34,10 +34,11 @@ Use this component README when you need TokenPilot-specific details:
 
 ```text
 components/tokenpilot/
+├── adapters/
+│   └── openclaw/         # OpenClaw adapter, hooks, commands, embedded proxy
 ├── README.md
 └── packages/
     ├── host-adapter/     # Shared host contracts and host-specific path/state interfaces
-    ├── openclaw-plugin/  # OpenClaw adapter, hooks, commands, embedded proxy
     ├── runtime-core/     # Host-agnostic runtime engine and reduction pipeline
     ├── kernel/           # Shared contracts, events, and runtime-facing types
     └── layers/
@@ -272,5 +273,5 @@ Current OpenClaw adapter self-check:
 
 More package-level adapter notes live in:
 
-- [packages/openclaw-plugin/README.md](./packages/openclaw-plugin/README.md)
+- [adapters/openclaw/README.md](./adapters/openclaw/README.md)
 - [../../experiments/tokenpilot/README.md](../../experiments/tokenpilot/README.md)

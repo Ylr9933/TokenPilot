@@ -26,7 +26,7 @@ For a higher-level semantic map of the current module boundaries, see:
 Release-style install:
 
 ```bash
-cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/adapters/openclaw
 npm run install:release
 ```
 
@@ -39,7 +39,7 @@ This installs the packaged TokenPilot runtime component into:
 After install, run the adapter doctor:
 
 ```bash
-cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/adapters/openclaw
 npm run doctor:openclaw
 ```
 
@@ -64,7 +64,7 @@ See:
 ## Build
 
 ```bash
-cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/adapters/openclaw
 corepack pnpm build
 corepack pnpm typecheck
 ```
@@ -112,7 +112,7 @@ rg 'stable_prefix_rewrite|proxy_before_call_rewrite|proxy_after_call_rewrite|too
 Lightweight integration self-check:
 
 ```bash
-cd /path/to/LightMem2/components/tokenpilot/packages/openclaw-plugin
+cd /path/to/LightMem2/components/tokenpilot/adapters/openclaw
 npm run doctor:openclaw
 ```
 
@@ -132,7 +132,7 @@ npm run doctor:openclaw
 ```
 
 The package still contains a small release-helper surface under
-`components/tokenpilot/packages/openclaw-plugin/scripts/`. Benchmarking and evaluation flows should
+`components/tokenpilot/adapters/openclaw/scripts/`. Benchmarking and evaluation flows should
 stay outside this package and eventually live under the top-level
 `experiments/` tree.
 

@@ -2,8 +2,8 @@
 import {
   buildTurnAbsId,
   createTurnAnchor,
-} from "../../../../layers/history/src/raw-semantic.js";
-import type { RawSemanticTurnRecord } from "../../../../layers/history/src/types.js";
+  type RawSemanticTurnRecord,
+} from "@tokenpilot/history";
 import { extractTurnObservations, isWriteLikeToolName } from "./transcript-observations.js";
 import type { TranscriptHelpers } from "./transcript-types.js";
 import { sliceMessagesForCurrentUserTurn, sliceMessagesForTurnSeq } from "./transcript-sync-slice.js";

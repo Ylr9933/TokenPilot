@@ -7,7 +7,7 @@ The current public repository ships one production adapter:
 
 | Host | Status | Integration Mode | Install Surface | Main Adapter Docs |
 | :-- | :-- | :-- | :-- | :-- |
-| `OpenClaw` | public | bundled runtime plugin | `pnpm plugin:install:release` or `npm --prefix components/tokenpilot/packages/openclaw-plugin run install:release` | [packages/openclaw-plugin/README.md](./packages/openclaw-plugin/README.md) |
+| `OpenClaw` | public | bundled runtime plugin | `pnpm plugin:install:release` or `npm --prefix components/tokenpilot/adapters/openclaw run install:release` | [adapters/openclaw/README.md](./adapters/openclaw/README.md) |
 | `Codex CLI` | planned | external hook / adapter | todo | not implemented yet |
 | `Claude Code` | planned | external hook / adapter | todo | not implemented yet |
 

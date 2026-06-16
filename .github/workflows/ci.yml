@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  tokenpilot-ci:
+  lightmem2-ci:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -32,11 +32,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm --filter tokenpilot typecheck
+      - name: Typecheck workspace
+        run: pnpm typecheck
 
-      - name: Build
-        run: pnpm --filter tokenpilot build
+      - name: Build workspace
+        run: pnpm build
 
-      - name: Test
-        run: pnpm --filter tokenpilot test
+      - name: Test OpenClaw adapter
+        run: npm --prefix components/tokenpilot/adapters/openclaw test
+
+      - name: Test decision package
+        run: npm --prefix components/tokenpilot/packages/layers/decision test

@@ -43,6 +43,10 @@ import { normalizeConfig } from "./context-stack/integration/config-normalize.js
 import { prepareProxyRequest } from "./context-stack/integration/proxy-runtime-request.js";
 import { recordStreamingUxEffect } from "./context-stack/integration/proxy-runtime-stream.js";
 import { countTokensWithFallback, recordUxEffect, serializeCanonicalInputForUx } from "./context-stack/integration/ux-effects.js";
+import {
+  createOpenClawPayloadCodec,
+  createOpenClawSessionResolver,
+} from "./context-stack/integration/openclaw-host-adapter.js";
 import { isReductionPassEnabled } from "@tokenpilot/runtime-core";
 import { loadOrderedTurnAnchors, loadSegmentAnchorByCallId } from "@tokenpilot/history";
 import {
@@ -112,6 +116,8 @@ export const proxyRuntimeHelpers = {
   countTokensWithFallback,
   recordUxEffect,
   serializeCanonicalInputForUx,
+  createOpenClawPayloadCodec,
+  createOpenClawSessionResolver,
 };
 
 const defaultBeforeCallTestHelpers = {
@@ -244,6 +250,7 @@ export const __testHooks = {
   prepareProxyRequest: (args: {
     cfg: any;
     logger?: any;
+    helpers?: any;
     payload: any;
     upstream?: any;
     resolveSessionIdForPayload?: ((payload: any) => string | undefined) | undefined;
@@ -256,7 +263,10 @@ export const __testHooks = {
       ...(args.cfg ?? {}),
     },
     logger: args.logger ?? makeLogger(),
-    helpers: proxyRuntimeHelpers,
+    helpers: {
+      ...proxyRuntimeHelpers,
+      ...(args.helpers ?? {}),
+    },
     payload: args.payload,
     upstream: args.upstream ?? {
       providerId: "test-upstream",
@@ -274,6 +284,8 @@ export const __testHooks = {
   appendEvictionVisualSnapshot,
   readVisualSessionData,
   readVisualSessionList,
+  createOpenClawPayloadCodec,
+  createOpenClawSessionResolver,
 };
 
 export { contextSafeRecovery, hasRecoveryMarker };

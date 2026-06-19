@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  extractContentText,
+  prependTextToContent,
+  replaceContentText,
+  rewriteTextForStablePrefix,
+} from "@tokenpilot/host-adapter";
 
 export type RootPromptRewrite = {
   canonicalPromptText: string;
@@ -9,154 +15,21 @@ export type RootPromptRewrite = {
   agentId?: string;
 };
 
-function extractContentText(content: any): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((entry) => {
-        if (!entry || typeof entry !== "object") return "";
-        if (typeof entry.text === "string") return entry.text;
-        if (typeof entry.content === "string") return entry.content;
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n");
-  }
-  if (!content || typeof content !== "object") return "";
-  if (typeof content.text === "string") return content.text;
-  if (typeof content.content === "string") return content.content;
-  return "";
+function normalizeOpenClawAgentSeparator(text: string): string {
+  return String(text ?? "").replace(/agent=<AGENT_ID>\s+\|/g, "agent=<AGENT_ID>|");
 }
 
-function replaceContentText(content: any, nextText: string): any {
-  if (typeof content === "string") return nextText;
-  if (Array.isArray(content)) {
-    const next = content.map((entry) => (entry && typeof entry === "object" ? { ...entry } : entry));
-    for (let i = 0; i < next.length; i += 1) {
-      const entry = next[i];
-      if (!entry || typeof entry !== "object") continue;
-      if (typeof (entry as any).text === "string") {
-        (entry as any).text = nextText;
-        return next;
-      }
-      if (typeof (entry as any).content === "string") {
-        (entry as any).content = nextText;
-        return next;
-      }
-    }
-    next.unshift({ type: "text", text: nextText });
-    return next;
-  }
-  if (content && typeof content === "object") {
-    if (typeof content.text === "string") {
-      return { ...content, text: nextText };
-    }
-    if (typeof content.content === "string") {
-      return { ...content, content: nextText };
-    }
-  }
-  return nextText;
-}
-
-export function prependTextToContent(content: any, extraText: string): any {
-  const extra = String(extraText ?? "").trim();
-  if (!extra) return content;
-  if (typeof content === "string") {
-    return content.trim().length > 0 ? `${extra}\n\n${content}` : extra;
-  }
-  if (Array.isArray(content)) {
-    const next = content.map((item) => (item && typeof item === "object" ? { ...item } : item));
-    for (let i = 0; i < next.length; i += 1) {
-      const item = next[i];
-      if (!item || typeof item !== "object") continue;
-      if (typeof (item as any).text === "string") {
-        (item as any).text = (item as any).text.trim().length > 0
-          ? `${extra}\n\n${String((item as any).text)}`
-          : extra;
-        return next;
-      }
-      if (typeof (item as any).content === "string") {
-        (item as any).content = (item as any).content.trim().length > 0
-          ? `${extra}\n\n${String((item as any).content)}`
-          : extra;
-        return next;
-      }
-    }
-    next.unshift({ type: "input_text", text: extra });
-    return next;
-  }
-  return extra;
-}
-
-function relocateToolingSectionToEnd(text: string): string {
-  const markerA = "## Tooling";
-  const markerB = "\nTOOLS.md does not control tool availability; it is user guidance for how to use external tools.";
-  const start = text.indexOf(markerA);
-  if (start < 0) return text;
-  const end = text.indexOf(markerB, start);
-  if (end < 0) return text;
-  const toolingEnd = end + markerB.length;
-  const tooling = text.slice(start, toolingEnd).trim();
-  const before = text.slice(0, start).trimEnd();
-  const after = text.slice(toolingEnd).trimStart();
-  const body = [before, after].filter(Boolean).join("\n\n").trim();
-  if (!body) return tooling;
-  return `${body}\n\n${tooling}`;
-}
+export { prependTextToContent };
 
 export function rewriteRootPromptForStablePrefix(promptText: string): RootPromptRewrite {
-  const raw = String(promptText ?? "");
-  if (!raw.trim()) {
-    return {
-      canonicalPromptText: raw,
-      forwardedPromptText: raw,
-      dynamicContextText: "",
-      changed: false,
-    };
-  }
-  const workdirMatch = raw.match(/Your working directory is:\s*([^\n\r]+)/i);
-  const runtimeAgentMatch = raw.match(/Runtime:\s*agent=([^|\n\r]+)/i);
-  const workdir = workdirMatch?.[1]?.trim();
-  const agentId = runtimeAgentMatch?.[1]?.trim();
-
-  let canonical = raw;
-  canonical = relocateToolingSectionToEnd(canonical);
-  if (workdir) {
-    canonical = canonical.split(workdir).join("<WORKDIR>");
-  }
-  canonical = canonical.replace(/(Runtime:\s*agent=)[^|\n\r]+/gi, "$1<AGENT_ID>");
-  canonical = canonical.replace(
-    /^##\s+<WORKDIR>[\\/]+([^\\/\n\r]+)$/gm,
-    "## $1",
-  );
-  canonical = canonical.replace(
-    /^##\s+(?:[A-Za-z]:[\\/]|\/)[^\n\r]*[\\/]+([^\\/\n\r]+)$/gm,
-    "## $1",
-  );
-  canonical = canonical.replace(
-    /(\[MISSING\]\s+Expected at:\s*)<WORKDIR>[\\/]+([^\\/\n\r]+)/g,
-    "$1$2",
-  );
-  canonical = canonical.replace(
-    /(\[MISSING\]\s+Expected at:\s*)(?:[A-Za-z]:[\\/]|\/)[^\n\r]*[\\/]+([^\\/\n\r]+)/g,
-    "$1$2",
-  );
-
-  const dynamicLines: string[] = [];
-  if (workdir) dynamicLines.push(`- WORKDIR: ${workdir}`);
-  if (agentId) dynamicLines.push(`- AGENT_ID: ${agentId}`);
-  const dynamicTail =
-    dynamicLines.length > 0
-      ? `\n${dynamicLines.join("\n")}`
-      : "";
-
+  const rewrite = rewriteTextForStablePrefix(promptText);
   return {
-    canonicalPromptText: canonical,
-    forwardedPromptText: canonical,
-    dynamicContextText: dynamicTail.trim(),
-    changed: canonical !== raw || dynamicTail.length > 0,
-    workdir,
-    agentId,
+    canonicalPromptText: normalizeOpenClawAgentSeparator(rewrite.canonicalText),
+    forwardedPromptText: normalizeOpenClawAgentSeparator(rewrite.forwardedText),
+    dynamicContextText: rewrite.dynamicContextText,
+    changed: rewrite.changed,
+    workdir: rewrite.workdir,
+    agentId: rewrite.agentId,
   };
 }
 
@@ -216,6 +89,14 @@ export function applyRootPromptRewriteToChatMessages(messages: any[]): {
         : rewrite.forwardedPromptText,
     ),
   };
+  if (userIndex >= 0 && rewrite.dynamicContextText) {
+    const userItem = nextMessages[userIndex];
+    nextMessages[userIndex] = {
+      ...userItem,
+      role: "user",
+      content: prependTextToContent(userItem?.content, rewrite.dynamicContextText),
+    };
+  }
   return {
     messages: nextMessages,
     rewrite,

@@ -1,0 +1,27 @@
+{
+  "session": {
+    "host": {
+      "hostId": "fixture-host",
+      "displayName": "Fixture Host"
+    },
+    "sessionId": "session-2",
+    "sessionMode": "single"
+  },
+  "model": "lightmem2/gpt-5.4-mini",
+  "stream": true,
+  "instructions": "System bootstrap.\nYour working directory is: <WORKDIR>\nRuntime: agent=<AGENT_ID> | model=lightmem2/gpt-5.4-mini\n\n[Recovery Protocol]\nIf a prior tool result contains `[Tool payload trimmed]`, use `memory_fault_recover` with the provided dataKey instead of re-calling the original tool.\nTreat `memory_fault_recover` as an internal archive read, then continue your analysis normally after recovery.",
+  "messages": [
+    {
+      "role": "user",
+      "content": "- WORKDIR: /tmp/demo/project\n- AGENT_ID: main\n\nPlease analyze the repository."
+    }
+  ],
+  "rawPayload": {
+    "input": [
+      {
+        "role": "user",
+        "content": "Sender (untrusted metadata): ```json\n{\"agent\":\"main\"}\n```\n\nPlease analyze the repository."
+      }
+    ]
+  }
+}

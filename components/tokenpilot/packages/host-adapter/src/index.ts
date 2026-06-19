@@ -1,48 +1,18 @@
-export type TokenPilotHostIdentity = {
-  hostId: string;
-  displayName: string;
-};
-
-export type TokenPilotStateRoots = {
-  stateDir: string;
-  namespaceDir: string;
-  workspaceArchiveDirname?: string;
-};
-
-export type TokenPilotStatePathResolver = {
-  host: TokenPilotHostIdentity;
-  roots: TokenPilotStateRoots;
-  defaultStateDir(): string;
-  stateDirCandidates(explicitStateDir?: string): string[];
-};
-
-export function createStaticStatePathResolver(params: {
-  hostId: string;
-  displayName: string;
-  stateDir: string;
-  namespaceDir: string;
-  workspaceArchiveDirname?: string;
-}): TokenPilotStatePathResolver {
-  const stateDir = params.stateDir.trim();
-  const namespaceDir = params.namespaceDir.trim();
-  return {
-    host: {
-      hostId: params.hostId,
-      displayName: params.displayName,
-    },
-    roots: {
-      stateDir,
-      namespaceDir,
-      workspaceArchiveDirname: params.workspaceArchiveDirname,
-    },
-    defaultStateDir() {
-      return stateDir;
-    },
-    stateDirCandidates(explicitStateDir?: string) {
-      if (explicitStateDir && explicitStateDir.trim().length > 0) {
-        return [explicitStateDir.trim()];
-      }
-      return [stateDir];
-    },
-  };
-}
+export * from "./model/host-message.js";
+export * from "./model/host-request.js";
+export * from "./model/host-response.js";
+export * from "./model/host-session.js";
+export * from "./contracts/payload-codec.js";
+export * from "./contracts/session-resolver.js";
+export * from "./contracts/stream-codec.js";
+export * from "./contracts/capabilities.js";
+export * from "./pipeline/types.js";
+export * from "./pipeline/message-text.js";
+export * from "./pipeline/stable-prefix.js";
+export * from "./pipeline/recovery.js";
+export * from "./pipeline/reduction.js";
+export * from "./pipeline/reduction-orchestrator.js";
+export * from "./pipeline/stream-tap.js";
+export * from "./pipeline/before-call.js";
+export * from "./pipeline/after-call.js";
+export * from "./state/path-resolver.js";

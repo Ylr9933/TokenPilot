@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { runBeforeCallReductionOrchestrator } from "@tokenpilot/host-adapter";
 import { injectProceduralMemoryHints } from "./procedural-memory.js";
+import {
+  createOpenClawPayloadCodec,
+  createOpenClawSessionResolver,
+  syncOpenClawPayloadFromEnvelope,
+} from "./openclaw-host-adapter.js";
+import { injectMemoryFaultProtocolInstructionsText } from "../page-in/recovery-protocol.js";
 import type { UpstreamConfig } from "./upstream.js";
 import { normalizeResponsesInputForUpstream } from "./proxy-runtime-shared.js";
 import { recordProxyInbound } from "./proxy-runtime-logging.js";
@@ -7,6 +14,8 @@ import { appendStabilityVisualSnapshot } from "../../commands/tokenpilot/session
 
 type ProxyRequestPreparation = {
   payload: any;
+  requestEnvelope: any;
+  payloadCodec: any;
   model: string;
   upstreamModel: string;
   originalInputText: string;
@@ -66,140 +75,154 @@ async function applyProxyReduction(
   reductionTriggerMinChars: number,
   reductionMaxToolChars: number,
 ): Promise<any> {
-  const runPolicyWithoutReduction = async () => {
-    if (!cfg.modules.policy || !policyModule) return;
-    const segmentAnchorByCallId =
-      cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
-        ? await helpers.loadSegmentAnchorByCallId(cfg.stateDir, resolvedSessionId, {
-          dedupeStrings: helpers.dedupeStrings,
-          syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
-            await helpers.syncRawSemanticTurnsFromTranscript(dir, sid, {
-              contentToText: helpers.contentToText,
-              contextSafeRecovery: helpers.contextSafeRecovery,
-              memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
-            });
-          },
-        }).catch(() => new Map())
-        : undefined;
-    const orderedTurnAnchors =
-      cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
-        ? await helpers.loadOrderedTurnAnchors(
-          cfg.stateDir,
-          resolvedSessionId,
-          helpers.dedupeStrings,
-        ).catch(() => [])
-        : undefined;
-    const { turnCtx } = helpers.buildLayeredReductionContext(
-      payload,
-      reductionTriggerMinChars,
-      resolvedSessionId,
-      {
-        memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
-        hasRecoveryMarker: helpers.hasRecoveryMarker,
-        inferObservationPayloadKind: helpers.inferObservationPayloadKind,
-      },
-      cfg.reduction.passes,
-      {
-        repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
-        tool_payload_trim: reductionPassOptions.toolPayloadTrim ?? {},
-        html_slimming: reductionPassOptions.htmlSlimming ?? {},
-        exec_output_truncation: reductionPassOptions.execOutputTruncation ?? {},
-        agents_startup_optimization: reductionPassOptions.agentsStartupOptimization ?? {},
-        format_slimming: reductionPassOptions.formatSlimming ?? {},
-        format_cleaning: reductionPassOptions.formatCleaning ?? {},
-        path_truncation: reductionPassOptions.pathTruncation ?? {},
-        image_downsample: reductionPassOptions.imageDownsample ?? {},
-        line_number_strip: reductionPassOptions.lineNumberStrip ?? {},
-      },
-      segmentAnchorByCallId,
-      orderedTurnAnchors,
-    );
-    await helpers.applyPolicyBeforeCall(turnCtx, cfg, logger, {
-      policy: policyModule,
-    });
+  const reductionContext = {
+    rawPayload: payload,
+    sessionId: resolvedSessionId,
+    triggerMinChars: reductionTriggerMinChars,
+    maxToolChars: reductionMaxToolChars,
+    proxyPureForward,
+    reductionEnabled: Boolean(cfg.modules.reduction),
   };
-  if (proxyPureForward || !cfg.modules.reduction) {
-    await runPolicyWithoutReduction();
-    return buildReductionSkippedResult(
-      payload,
-      reductionTriggerMinChars,
-      reductionMaxToolChars,
-      proxyPureForward ? "proxy_pure_forward" : "module_disabled",
-    );
-  }
-  if (cfg.stateDir) {
-    void helpers.appendTaskStateTrace(cfg.stateDir, {
-      stage: "proxy_reduction_session_resolved",
-      resolvedSessionId,
-      promptPreview: String(payload?.prompt ?? "").slice(0, 160),
-    });
-  }
-  return helpers.applyProxyReductionToInput(
-    payload,
+
+  return runBeforeCallReductionOrchestrator(
     {
-      sessionId: resolvedSessionId,
-      logger,
-      engine: cfg.reduction.engine,
-      triggerMinChars: cfg.reduction.triggerMinChars,
-      maxToolChars: cfg.reduction.maxToolChars,
-      passToggles: cfg.reduction.passes,
-      passOptions: {
-        repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
-        tool_payload_trim: reductionPassOptions.toolPayloadTrim ?? {},
-        html_slimming: reductionPassOptions.htmlSlimming ?? {},
-        exec_output_truncation: reductionPassOptions.execOutputTruncation ?? {},
-        agents_startup_optimization: reductionPassOptions.agentsStartupOptimization ?? {},
-        format_slimming: reductionPassOptions.formatSlimming ?? {},
-        format_cleaning: reductionPassOptions.formatCleaning ?? {},
-        path_truncation: reductionPassOptions.pathTruncation ?? {},
-        image_downsample: reductionPassOptions.imageDownsample ?? {},
-        line_number_strip: reductionPassOptions.lineNumberStrip ?? {},
-      },
-      beforeCallModules: {
-        policy: policyModule,
-      },
-      cfg,
-    },
-    {
-      applyPolicyBeforeCall: helpers.applyPolicyBeforeCall,
-      buildLayeredReductionContext: (
-        payloadInner: any,
-        triggerMinChars: number,
-        sessionId: string,
-        passToggles: any,
-        passOptions: any,
-        segmentAnchorByCallId: any,
-        orderedTurnAnchors: any,
-      ) => helpers.buildLayeredReductionContext(
-        payloadInner,
-        triggerMinChars,
-        sessionId,
-        {
-          memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
-          hasRecoveryMarker: helpers.hasRecoveryMarker,
-          inferObservationPayloadKind: helpers.inferObservationPayloadKind,
-        },
-        passToggles,
-        passOptions,
-        segmentAnchorByCallId,
-        orderedTurnAnchors,
-      ),
-      isReductionPassEnabled: helpers.isReductionPassEnabled,
-      loadOrderedTurnAnchors: (stateDir: string, sessionId: string) =>
-        helpers.loadOrderedTurnAnchors(stateDir, sessionId, helpers.dedupeStrings),
-      loadSegmentAnchorByCallId: (stateDir: string, sessionId: string) =>
-        helpers.loadSegmentAnchorByCallId(stateDir, sessionId, {
-          dedupeStrings: helpers.dedupeStrings,
-          syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
-            await helpers.syncRawSemanticTurnsFromTranscript(dir, sid, {
-              contentToText: helpers.contentToText,
-              contextSafeRecovery: helpers.contextSafeRecovery,
-              memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
-            });
+      runPolicyWithoutReduction: async () => {
+        if (!cfg.modules.policy || !policyModule) return;
+        const segmentAnchorByCallId =
+          cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
+            ? await helpers.loadSegmentAnchorByCallId(cfg.stateDir, resolvedSessionId, {
+              dedupeStrings: helpers.dedupeStrings,
+              syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
+                await helpers.syncRawSemanticTurnsFromTranscript(dir, sid, {
+                  contentToText: helpers.contentToText,
+                  contextSafeRecovery: helpers.contextSafeRecovery,
+                  memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+                });
+              },
+            }).catch(() => new Map())
+            : undefined;
+        const orderedTurnAnchors =
+          cfg?.stateDir && resolvedSessionId && resolvedSessionId !== "proxy-session"
+            ? await helpers.loadOrderedTurnAnchors(
+              cfg.stateDir,
+              resolvedSessionId,
+              helpers.dedupeStrings,
+            ).catch(() => [])
+            : undefined;
+        const { turnCtx } = helpers.buildLayeredReductionContext(
+          payload,
+          reductionTriggerMinChars,
+          resolvedSessionId,
+          {
+            memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+            hasRecoveryMarker: helpers.hasRecoveryMarker,
+            inferObservationPayloadKind: helpers.inferObservationPayloadKind,
           },
-        }),
-      makeLogger: helpers.makeLogger,
+          cfg.reduction.passes,
+          {
+            repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
+            tool_payload_trim: reductionPassOptions.toolPayloadTrim ?? {},
+            html_slimming: reductionPassOptions.htmlSlimming ?? {},
+            exec_output_truncation: reductionPassOptions.execOutputTruncation ?? {},
+            agents_startup_optimization: reductionPassOptions.agentsStartupOptimization ?? {},
+            format_slimming: reductionPassOptions.formatSlimming ?? {},
+            format_cleaning: reductionPassOptions.formatCleaning ?? {},
+            path_truncation: reductionPassOptions.pathTruncation ?? {},
+            image_downsample: reductionPassOptions.imageDownsample ?? {},
+            line_number_strip: reductionPassOptions.lineNumberStrip ?? {},
+          },
+          segmentAnchorByCallId,
+          orderedTurnAnchors,
+        );
+        await helpers.applyPolicyBeforeCall(turnCtx, cfg, logger, {
+          policy: policyModule,
+        });
+      },
+      buildSkippedResult: (context, skippedReason) =>
+        buildReductionSkippedResult(
+          context.rawPayload,
+          context.triggerMinChars,
+          context.maxToolChars,
+          skippedReason,
+        ),
+      runReduction: async () => {
+        if (cfg.stateDir) {
+          void helpers.appendTaskStateTrace(cfg.stateDir, {
+            stage: "proxy_reduction_session_resolved",
+            resolvedSessionId,
+            promptPreview: String(payload?.prompt ?? "").slice(0, 160),
+          });
+        }
+        return helpers.applyProxyReductionToInput(
+          payload,
+          {
+            sessionId: resolvedSessionId,
+            logger,
+            engine: cfg.reduction.engine,
+            triggerMinChars: cfg.reduction.triggerMinChars,
+            maxToolChars: cfg.reduction.maxToolChars,
+            passToggles: cfg.reduction.passes,
+            passOptions: {
+              repeated_read_dedup: reductionPassOptions.repeatedReadDedup ?? {},
+              tool_payload_trim: reductionPassOptions.toolPayloadTrim ?? {},
+              html_slimming: reductionPassOptions.htmlSlimming ?? {},
+              exec_output_truncation: reductionPassOptions.execOutputTruncation ?? {},
+              agents_startup_optimization: reductionPassOptions.agentsStartupOptimization ?? {},
+              format_slimming: reductionPassOptions.formatSlimming ?? {},
+              format_cleaning: reductionPassOptions.formatCleaning ?? {},
+              path_truncation: reductionPassOptions.pathTruncation ?? {},
+              image_downsample: reductionPassOptions.imageDownsample ?? {},
+              line_number_strip: reductionPassOptions.lineNumberStrip ?? {},
+            },
+            beforeCallModules: {
+              policy: policyModule,
+            },
+            cfg,
+          },
+          {
+            applyPolicyBeforeCall: helpers.applyPolicyBeforeCall,
+            buildLayeredReductionContext: (
+              payloadInner: any,
+              triggerMinChars: number,
+              sessionId: string,
+              passToggles: any,
+              passOptions: any,
+              segmentAnchorByCallId: any,
+              orderedTurnAnchors: any,
+            ) => helpers.buildLayeredReductionContext(
+              payloadInner,
+              triggerMinChars,
+              sessionId,
+              {
+                memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+                hasRecoveryMarker: helpers.hasRecoveryMarker,
+                inferObservationPayloadKind: helpers.inferObservationPayloadKind,
+              },
+              passToggles,
+              passOptions,
+              segmentAnchorByCallId,
+              orderedTurnAnchors,
+            ),
+            isReductionPassEnabled: helpers.isReductionPassEnabled,
+            loadOrderedTurnAnchors: (stateDir: string, sessionId: string) =>
+              helpers.loadOrderedTurnAnchors(stateDir, sessionId, helpers.dedupeStrings),
+            loadSegmentAnchorByCallId: (stateDir: string, sessionId: string) =>
+              helpers.loadSegmentAnchorByCallId(stateDir, sessionId, {
+                dedupeStrings: helpers.dedupeStrings,
+                syncRawSemanticTurnsFromTranscript: async (dir: string, sid: string) => {
+                  await helpers.syncRawSemanticTurnsFromTranscript(dir, sid, {
+                    contentToText: helpers.contentToText,
+                    contextSafeRecovery: helpers.contextSafeRecovery,
+                    memoryFaultRecoverToolName: helpers.MEMORY_FAULT_RECOVER_TOOL_NAME,
+                  });
+                },
+              }),
+            makeLogger: helpers.makeLogger,
+          },
+        );
+      },
     },
+    reductionContext,
   );
 }
 
@@ -226,51 +249,82 @@ export async function prepareProxyRequest(args: {
     dynamicContextTarget,
   } = args;
   normalizeResponsesInputForUpstream(payload?.input);
+  const sessionResolver = createOpenClawSessionResolver({
+    resolveSessionIdForPayload,
+    extractInputText: helpers.extractInputText,
+  });
+  const payloadCodec = createOpenClawPayloadCodec(
+    {
+      resolveSessionIdForPayload,
+      extractInputText: helpers.extractInputText,
+    },
+    sessionResolver,
+  );
+  let requestEnvelope = payloadCodec.decodeRequest(payload);
   const originalInputText = helpers.extractInputText(payload?.input);
-  const model = String(payload?.model ?? "");
+  const model = String(requestEnvelope.model ?? payload?.model ?? "");
   const upstreamModel = helpers.normalizeProxyModelId(model);
   if (upstreamModel && upstreamModel !== model) {
-    payload.model = upstreamModel;
+    requestEnvelope = {
+      ...requestEnvelope,
+      model: upstreamModel,
+    };
+    syncOpenClawPayloadFromEnvelope(payload, requestEnvelope, payloadCodec);
   }
   const proxyPureForward = cfg.proxyMode.pureForward;
   const reductionTriggerMinChars = Math.max(256, cfg.reduction.triggerMinChars ?? 2200);
   const reductionMaxToolChars = Math.max(256, cfg.reduction.maxToolChars ?? 1200);
-  const resolvedSessionId = String(resolveSessionIdForPayload?.(payload) ?? "proxy-session").trim() || "proxy-session";
+  const resolvedSessionId = String(requestEnvelope.session.sessionId ?? "proxy-session").trim() || "proxy-session";
   if (!proxyPureForward && cfg.modules.reduction) {
-    helpers.injectMemoryFaultProtocolInstructions(payload);
+    const recoveryResult = injectMemoryFaultProtocolInstructionsText(requestEnvelope.instructions);
+    if (recoveryResult.changed) {
+      requestEnvelope = {
+        ...requestEnvelope,
+        instructions: recoveryResult.instructions,
+      };
+      syncOpenClawPayloadFromEnvelope(payload, requestEnvelope, payloadCodec);
+    }
   }
-  const instructions = helpers.normalizeText(String(payload?.instructions ?? ""));
-  const devAndUser = !proxyPureForward ? helpers.findDeveloperAndPrimaryUser(payload?.input) : null;
-  const rootPromptCandidate = !proxyPureForward ? helpers.findRootPromptCandidate(payload?.input) : null;
+  const instructions = helpers.normalizeText(String(requestEnvelope.instructions ?? payload?.instructions ?? ""));
+  const devAndUser = !proxyPureForward ? helpers.findDeveloperAndPrimaryUser(requestEnvelope.messages) : null;
+  const rootPromptCandidate = !proxyPureForward ? helpers.findRootPromptCandidate(requestEnvelope.messages) : null;
   const firstTurnCandidate = Boolean(devAndUser);
   const rootPromptRewrite = rootPromptCandidate && !proxyPureForward
     ? helpers.rewriteRootPromptForStablePrefix(rootPromptCandidate.text)
     : null;
   const developerCanonicalText = String(rootPromptRewrite?.canonicalPromptText ?? rootPromptCandidate?.text ?? "");
   const developerForwardedText = String(rootPromptRewrite?.forwardedPromptText ?? rootPromptCandidate?.text ?? "");
-  const originalPromptCacheKey = typeof payload?.prompt_cache_key === "string" && payload.prompt_cache_key.trim().length > 0
-    ? String(payload.prompt_cache_key)
+  const originalPromptCacheKey = typeof requestEnvelope.metadata?.promptCacheKey === "string" && requestEnvelope.metadata.promptCacheKey.trim().length > 0
+    ? String(requestEnvelope.metadata.promptCacheKey)
+    : typeof payload?.prompt_cache_key === "string" && payload.prompt_cache_key.trim().length > 0
+      ? String(payload.prompt_cache_key)
     : "";
-  if (!proxyPureForward && devAndUser && rootPromptRewrite && Array.isArray(payload?.input) && devAndUser.developerIndex >= 0) {
+  if (!proxyPureForward && devAndUser && rootPromptRewrite && Array.isArray(requestEnvelope.messages) && devAndUser.developerIndex >= 0) {
+    const nextMessages = requestEnvelope.messages.slice();
     const forwardedDeveloperText =
       dynamicContextTarget === "developer" && rootPromptRewrite.dynamicContextText
         ? `${helpers.normalizeText(rootPromptRewrite.forwardedPromptText)}\n\n${helpers.normalizeText(rootPromptRewrite.dynamicContextText)}`
         : rootPromptRewrite.forwardedPromptText;
-    payload.input[devAndUser.developerIndex] = {
-      ...(devAndUser.developerItem ?? payload.input[devAndUser.developerIndex]),
+    nextMessages[devAndUser.developerIndex] = {
+      ...(devAndUser.developerItem ?? nextMessages[devAndUser.developerIndex]),
       role: "developer",
       content: forwardedDeveloperText,
     };
     if (dynamicContextTarget === "user" && rootPromptRewrite.dynamicContextText && devAndUser.userIndex >= 0) {
-      payload.input[devAndUser.userIndex] = {
-        ...(devAndUser.userItem ?? payload.input[devAndUser.userIndex]),
+      nextMessages[devAndUser.userIndex] = {
+        ...(devAndUser.userItem ?? nextMessages[devAndUser.userIndex]),
         role: "user",
         content: helpers.prependTextToContent(
-          (devAndUser.userItem ?? payload.input[devAndUser.userIndex])?.content,
+          (devAndUser.userItem ?? nextMessages[devAndUser.userIndex])?.content,
           rootPromptRewrite.dynamicContextText,
         ),
       };
     }
+    requestEnvelope = {
+      ...requestEnvelope,
+      messages: nextMessages,
+    };
+    syncOpenClawPayloadFromEnvelope(payload, requestEnvelope, payloadCodec);
   }
   const stableRewrite = !proxyPureForward
     ? helpers.rewritePayloadForStablePrefix(payload, model, {
@@ -285,6 +339,14 @@ export async function prepareProxyRequest(args: {
       senderMetadataBlocksBefore: 0,
       senderMetadataBlocksAfter: 0,
     };
+  requestEnvelope = payloadCodec.decodeRequest(payload);
+  requestEnvelope = {
+    ...requestEnvelope,
+    metadata: {
+      ...(requestEnvelope.metadata ?? {}),
+      promptCacheKey: String(stableRewrite.promptCacheKey ?? ""),
+    },
+  };
   const memoryInjection = !proxyPureForward
     ? await injectProceduralMemoryHints({
       cfg,
@@ -361,15 +423,34 @@ export async function prepareProxyRequest(args: {
   }
   const afterReductionInputText = helpers.extractInputText(payload?.input);
   const afterReductionCanonicalInput = helpers.serializeCanonicalInputForUx(payload?.input);
+  requestEnvelope = payloadCodec.decodeRequest(payload);
   if (!proxyPureForward && cfg.modules.reduction) {
+    requestEnvelope = {
+      ...requestEnvelope,
+      metadata: {
+        ...(requestEnvelope.metadata ?? {}),
+        promptCacheKey: String(stableRewrite.promptCacheKey ?? ""),
+        promptCacheRetention: "24h",
+      },
+    };
     payload.__tokenpilot_reduction_applied = true;
+  } else {
+    requestEnvelope = {
+      ...requestEnvelope,
+      metadata: {
+        ...(requestEnvelope.metadata ?? {}),
+        promptCacheKey: String(stableRewrite.promptCacheKey ?? ""),
+      },
+    };
   }
+  syncOpenClawPayloadFromEnvelope(payload, requestEnvelope, payloadCodec);
   helpers.stripInternalPayloadMarkers(payload);
   logger.info(`[plugin-runtime] proxy request model=${model || "unknown"} upstreamModel=${upstreamModel || "unknown"} instrChars=${instructions.length} cacheKey=${stableRewrite.promptCacheKey} userContentRewrites=${stableRewrite.userContentRewrites} senderBlocks=${stableRewrite.senderMetadataBlocksBefore}->${stableRewrite.senderMetadataBlocksAfter} reductionEngine=${proxyPureForward ? "proxy_pure_forward" : cfg.reduction.engine} reductionItems=${reductionApplied.changedItems} reductionBlocks=${reductionApplied.changedBlocks} reductionSavedChars=${reductionApplied.savedChars} reductionCandidates=${reductionApplied.diagnostics?.candidateBlocks ?? 0} reductionOverThreshold=${reductionApplied.diagnostics?.overThresholdBlocks ?? 0} reductionPersistedSkipped=${reductionApplied.diagnostics?.persistedSkippedItems ?? 0} reductionSkipped=${reductionApplied.diagnostics?.skippedReason ?? "none"}`);
   await recordProxyInbound({
     cfg,
     helpers,
     upstream,
+    requestEnvelope,
     payload,
     resolvedSessionId,
     model,
@@ -387,6 +468,8 @@ export async function prepareProxyRequest(args: {
   payload.prompt_cache_retention = "24h";
   return {
     payload,
+    requestEnvelope,
+    payloadCodec,
     model,
     upstreamModel,
     originalInputText,

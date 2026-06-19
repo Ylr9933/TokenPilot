@@ -24,7 +24,9 @@ export async function applyProxyAfterCallReduction(params: {
   cfg: any;
   helpers: any;
   activePayload: any;
+  requestEnvelope?: any;
   parsedResponseForMirror: any;
+  responseEnvelope?: any;
   txt: string;
   responseContentType: string;
   reductionMaxToolChars: number;
@@ -37,7 +39,9 @@ export async function applyProxyAfterCallReduction(params: {
     cfg,
     helpers,
     activePayload,
+    requestEnvelope,
     parsedResponseForMirror,
+    responseEnvelope,
     txt,
     responseContentType,
     reductionMaxToolChars,
@@ -53,7 +57,7 @@ export async function applyProxyAfterCallReduction(params: {
     if (parsedResponseForMirror) {
       try {
         afterCallReduction = await helpers.applyLayeredReductionAfterCall(
-          activePayload,
+          requestEnvelope?.rawPayload ?? activePayload,
           parsedResponseForMirror,
           reductionMaxToolChars,
           reductionTriggerMinChars,
@@ -83,7 +87,7 @@ export async function applyProxyAfterCallReduction(params: {
     } else if (helpers.isSseContentType(responseContentType)) {
       try {
         const sseResult = await helpers.applyLayeredReductionAfterCallToSse(
-          activePayload,
+          requestEnvelope?.rawPayload ?? activePayload,
           nextText,
           reductionMaxToolChars,
           reductionTriggerMinChars,

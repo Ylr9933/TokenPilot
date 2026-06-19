@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { UpstreamConfig, UpstreamHttpResponse } from "./upstream.js";
+import { createOpenClawHostBridge } from "./openclaw-host-bridge.js";
 import { applyProxyAfterCallReduction, recordNonStreamingUxEffect } from "./proxy-runtime-postprocess.js";
 import { recordStreamingUxEffect } from "./proxy-runtime-stream.js";
 import { recordProxyForwarding, recordProxyResponse } from "./proxy-runtime-logging.js";
@@ -11,6 +12,8 @@ export async function handleStreamingProxyResponse(args: {
   logger: any;
   upstream: UpstreamConfig;
   activePayload: any;
+  requestEnvelope?: any;
+  payloadCodec?: any;
   resolvedSessionId: string;
   model: string;
   upstreamModel: string;
@@ -116,6 +119,8 @@ export async function handleNonStreamingProxyResponse(args: {
   logger: any;
   upstream: UpstreamConfig;
   activePayload: any;
+  requestEnvelope?: any;
+  payloadCodec?: any;
   resolvedSessionId: string;
   model: string;
   upstreamModel: string;
@@ -136,6 +141,8 @@ export async function handleNonStreamingProxyResponse(args: {
     logger,
     upstream,
     activePayload,
+    requestEnvelope,
+    payloadCodec,
     resolvedSessionId,
     model,
     upstreamModel,
@@ -149,6 +156,8 @@ export async function handleNonStreamingProxyResponse(args: {
     reductionMaxToolChars,
     reductionTriggerMinChars,
   } = args;
+  const hostBridge = createOpenClawHostBridge(helpers);
+  const responseCodec = payloadCodec ?? hostBridge.payloadCodec;
   let upstreamResp: UpstreamHttpResponse | null = null;
   let txt = "";
   let parsedResponseForMirror: any = null;
@@ -165,12 +174,17 @@ export async function handleNonStreamingProxyResponse(args: {
   } catch {
     parsedResponseForMirror = null;
   }
+  const responseEnvelope = parsedResponseForMirror
+    ? hostBridge.decodeResponse(parsedResponseForMirror, activePayload)
+    : null;
   const postprocessResult = await applyProxyAfterCallReduction({
     proxyPureForward,
     cfg,
     helpers,
     activePayload,
+    requestEnvelope,
     parsedResponseForMirror,
+    responseEnvelope,
     txt,
     responseContentType,
     reductionMaxToolChars,
@@ -201,6 +215,7 @@ export async function handleNonStreamingProxyResponse(args: {
     cfg,
     helpers,
     txt,
+    responseEnvelope,
     activePayload,
     model,
     upstreamModel,
@@ -229,6 +244,7 @@ export async function handleNonStreamingProxyResponse(args: {
     cfg,
     helpers,
     txt,
+    responseEnvelope,
     activePayload,
     resolvedSessionId,
     model,

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { createOpenClawHostBridge } from "./openclaw-host-bridge.js";
 
 export async function recordStreamingUxEffect(params: {
   cfg: any;
@@ -32,11 +33,8 @@ export async function recordStreamingUxEffect(params: {
 
   try {
     const streamedRawText = Buffer.concat(streamChunks).toString("utf8");
-    const responseText = helpers.extractProviderResponseText(
-      streamedRawText,
-      null,
-      helpers.contentToText,
-    );
+    const streamSnapshot = createOpenClawHostBridge(helpers).snapshotStream(streamedRawText);
+    const responseText = streamSnapshot.assistantText;
     const inputBeforeCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", originalInputText);
     const inputAfterCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", afterReductionInputText);
     const responseCount = await helpers.countTokensWithFallback(model || upstreamModel || "gpt-5.4-mini", responseText);

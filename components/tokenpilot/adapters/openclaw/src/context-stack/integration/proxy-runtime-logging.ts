@@ -14,6 +14,7 @@ export async function recordProxyInbound(params: {
   cfg: any;
   helpers: any;
   upstream: any;
+  requestEnvelope?: any;
   payload: any;
   resolvedSessionId: string;
   model: string;
@@ -32,6 +33,7 @@ export async function recordProxyInbound(params: {
     cfg,
     helpers,
     upstream,
+    requestEnvelope,
     payload,
     resolvedSessionId,
     model,
@@ -46,14 +48,17 @@ export async function recordProxyInbound(params: {
     firstTurnCandidate,
     originalPromptCacheKey,
   } = params;
+  const activePayload = requestEnvelope?.rawPayload && typeof requestEnvelope.rawPayload === "object"
+    ? requestEnvelope.rawPayload
+    : payload;
   const requestAt = new Date().toISOString();
   const requestId = buildRequestId([
     requestAt,
     model,
     upstreamModel,
     stableRewrite.promptCacheKey,
-    payload?.previous_response_id ?? "",
-    Array.isArray(payload?.input) ? payload.input.length : -1,
+    requestEnvelope?.metadata?.previousResponseId ?? activePayload?.previous_response_id ?? "",
+    Array.isArray(requestEnvelope?.messages) ? requestEnvelope.messages.length : Array.isArray(activePayload?.input) ? activePayload.input.length : -1,
   ]);
   const proxyLogPath = pluginStateSubdir(cfg.stateDir, "proxy-requests.jsonl");
   const logRecord = {
@@ -65,10 +70,10 @@ export async function recordProxyInbound(params: {
     upstreamModel,
     upstreamBaseUrl: upstream.baseUrl,
     instructionsLength: instructions.length,
-    instructions: String(payload?.instructions ?? ""),
-    inputItemCount: Array.isArray(payload?.input) ? payload.input.length : -1,
-    input: payload?.input,
-    tools: payload?.tools,
+    instructions: String(requestEnvelope?.instructions ?? activePayload?.instructions ?? ""),
+    inputItemCount: Array.isArray(requestEnvelope?.messages) ? requestEnvelope.messages.length : Array.isArray(activePayload?.input) ? activePayload.input.length : -1,
+    input: Array.isArray(requestEnvelope?.messages) ? requestEnvelope.messages : activePayload?.input,
+    tools: Array.isArray(requestEnvelope?.tools) ? requestEnvelope.tools : activePayload?.tools,
     promptCacheKey: stableRewrite.promptCacheKey,
     developerRewritten: Boolean(rootPromptRewrite?.changed),
     developerRewriteWorkdir: rootPromptRewrite?.workdir ?? "",
@@ -126,7 +131,9 @@ export async function recordProxyInbound(params: {
     model,
     upstreamModel,
     instructionsChars: instructions.length,
-    inputChars: helpers.normalizeText(helpers.extractInputText(payload?.input)).length,
+    inputChars: helpers.normalizeText(helpers.extractInputText(
+      Array.isArray(requestEnvelope?.messages) ? requestEnvelope.messages : activePayload?.input,
+    )).length,
     devUserDetected: Boolean(devAndUser),
     firstTurnCandidate,
     developerChars: developerForwardedText.length,
@@ -144,7 +151,7 @@ export async function recordProxyInbound(params: {
     reductionSavedChars: reductionApplied.savedChars,
     reductionReport: reductionApplied.report ?? null,
     reductionDiagnostics: reductionApplied.diagnostics,
-    payload,
+    payload: activePayload,
   };
   await mkdir(dirname(cfg.debugTapPath), { recursive: true });
   await appendFile(cfg.debugTapPath, `${JSON.stringify(debugRecord)}\n`, "utf8");
@@ -154,6 +161,7 @@ export async function recordProxyResponse(params: {
   cfg: any;
   helpers: any;
   txt: string;
+  responseEnvelope?: any;
   activePayload: any;
   model: string;
   upstreamModel: string;
@@ -165,6 +173,7 @@ export async function recordProxyResponse(params: {
     cfg,
     helpers,
     txt,
+    responseEnvelope,
     activePayload,
     model,
     upstreamModel,
@@ -178,13 +187,14 @@ export async function recordProxyResponse(params: {
   } catch {
     parsedResponseSent = null;
   }
+  const responseView = responseEnvelope ?? null;
   const responseAt = new Date().toISOString();
   const responseRequestId = buildRequestId([
     responseAt,
     model,
     upstreamModel,
     activePayload?.prompt_cache_key ?? "",
-    parsedResponseSent?.id ?? "",
+    responseView?.metadata?.responseId ?? parsedResponseSent?.id ?? "",
     upstreamRespFinal.status,
   ]);
   const proxyRespLogPath = pluginStateSubdir(cfg.stateDir, "proxy-responses.jsonl");
@@ -198,11 +208,11 @@ export async function recordProxyResponse(params: {
     transport: upstreamRespFinal.transport,
     promptCacheKey: activePayload?.prompt_cache_key,
     promptCacheRetention: activePayload?.prompt_cache_retention,
-    responseId: parsedResponseSent?.id ?? null,
-    previousResponseId: parsedResponseSent?.previous_response_id ?? null,
-    responsePromptCacheKey: parsedResponseSent?.prompt_cache_key ?? null,
-    responsePromptCacheRetention: parsedResponseSent?.prompt_cache_retention ?? null,
-    usage: parsedResponseSent?.usage ?? null,
+    responseId: responseView?.metadata?.responseId ?? parsedResponseSent?.id ?? null,
+    previousResponseId: responseView?.metadata?.previousResponseId ?? parsedResponseSent?.previous_response_id ?? null,
+    responsePromptCacheKey: responseView?.metadata?.promptCacheKey ?? parsedResponseSent?.prompt_cache_key ?? null,
+    responsePromptCacheRetention: responseView?.metadata?.promptCacheRetention ?? parsedResponseSent?.prompt_cache_retention ?? null,
+    usage: responseView?.usage ?? parsedResponseSent?.usage ?? null,
     responseFunctionCalls: summarizeResponseFunctionCalls(parsedResponseSent),
     afterCallReduction: afterCallReduction ?? null,
     memoryFaultAutoReplayCount,
@@ -232,6 +242,7 @@ export async function recordProxyForwarding(params: {
   cfg: any;
   helpers: any;
   txt: string;
+  responseEnvelope?: any;
   activePayload: any;
   resolvedSessionId: string;
   model: string;
@@ -245,6 +256,7 @@ export async function recordProxyForwarding(params: {
     cfg,
     helpers,
     txt,
+    responseEnvelope,
     activePayload,
     resolvedSessionId,
     model,
@@ -285,6 +297,7 @@ export async function recordProxyForwarding(params: {
   try {
     parsedResponse = JSON.parse(txt);
   } catch {}
+  const responseView = responseEnvelope ?? null;
   const debugRecord = {
     at: new Date().toISOString(),
     stage: "proxy_outbound",
@@ -292,11 +305,11 @@ export async function recordProxyForwarding(params: {
     upstreamModel,
     status: upstreamRespFinal.status,
     transport: upstreamRespFinal.transport,
-    responseId: typeof parsedResponse?.id === "string" ? parsedResponse.id : typeof parsedResponse?.response?.id === "string" ? parsedResponse.response.id : null,
-    previousResponseId: typeof parsedResponse?.previous_response_id === "string" ? parsedResponse.previous_response_id : typeof parsedResponse?.response?.previous_response_id === "string" ? parsedResponse.response.previous_response_id : null,
-    promptCacheKey: typeof parsedResponse?.prompt_cache_key === "string" ? parsedResponse.prompt_cache_key : typeof parsedResponse?.response?.prompt_cache_key === "string" ? parsedResponse.response.prompt_cache_key : null,
-    promptCacheRetention: typeof parsedResponse?.prompt_cache_retention === "string" ? parsedResponse.prompt_cache_retention : typeof parsedResponse?.response?.prompt_cache_retention === "string" ? parsedResponse.response.prompt_cache_retention : null,
-    usage: parsedResponse?.usage ?? parsedResponse?.response?.usage ?? null,
+    responseId: responseView?.metadata?.responseId ?? (typeof parsedResponse?.id === "string" ? parsedResponse.id : typeof parsedResponse?.response?.id === "string" ? parsedResponse.response.id : null),
+    previousResponseId: responseView?.metadata?.previousResponseId ?? (typeof parsedResponse?.previous_response_id === "string" ? parsedResponse.previous_response_id : typeof parsedResponse?.response?.previous_response_id === "string" ? parsedResponse.response.previous_response_id : null),
+    promptCacheKey: responseView?.metadata?.promptCacheKey ?? (typeof parsedResponse?.prompt_cache_key === "string" ? parsedResponse.prompt_cache_key : typeof parsedResponse?.response?.prompt_cache_key === "string" ? parsedResponse.response.prompt_cache_key : null),
+    promptCacheRetention: responseView?.metadata?.promptCacheRetention ?? (typeof parsedResponse?.prompt_cache_retention === "string" ? parsedResponse.prompt_cache_retention : typeof parsedResponse?.response?.prompt_cache_retention === "string" ? parsedResponse.response.prompt_cache_retention : null),
+    usage: responseView?.usage ?? parsedResponse?.usage ?? parsedResponse?.response?.usage ?? null,
     afterCallReduction,
     responseText: txt,
     memoryFaultAutoReplayCount,

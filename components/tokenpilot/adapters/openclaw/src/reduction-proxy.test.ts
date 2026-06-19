@@ -43,6 +43,7 @@ const hooks = plugin.__testHooks as {
   prepareProxyRequest: (args: {
     cfg: any;
     logger?: any;
+    helpers?: any;
     payload: any;
     upstream?: any;
     resolveSessionIdForPayload?: ((payload: any) => string | undefined) | undefined;
@@ -50,6 +51,8 @@ const hooks = plugin.__testHooks as {
     reductionPassOptions?: any;
     dynamicContextTarget?: "user" | "developer";
   }) => Promise<{
+    payload: any;
+    requestEnvelope: any;
     reductionApplied: {
       diagnostics?: {
         skippedReason?: string;
@@ -309,6 +312,74 @@ test("prepareProxyRequest falls back to system root prompt for stability view", 
 
   assert.match(String(prepared.developerCanonicalText), /<WORKDIR>/);
   assert.match(String(prepared.developerForwardedText), /System root prompt body/);
+});
+
+test("prepareProxyRequest does not roll back payload mutations made after stable rewrite", async () => {
+  const cfg = hooks.normalizeConfig({
+    modules: {
+      policy: false,
+      reduction: true,
+    },
+  });
+
+  const payload: any = {
+    model: "tokenpilot/gpt-5.4-mini",
+    input: [
+      {
+        role: "developer",
+        content: "Runtime: agent=test-agent | host=demo\nYour working directory is: /tmp/demo",
+      },
+      {
+        role: "user",
+        content: "hello",
+      },
+    ],
+  };
+
+  const prepared = await hooks.prepareProxyRequest({
+    cfg,
+    payload,
+    resolveSessionIdForPayload: () => "session-no-rollback",
+    helpers: {
+      injectMemoryFaultProtocolInstructions: () => false,
+      rewritePayloadForStablePrefix: (inputPayload: any) => {
+        inputPayload.prompt_cache_key = "runtime-pfx-test";
+        return {
+          promptCacheKey: "runtime-pfx-test",
+          userContentRewrites: 0,
+          senderMetadataBlocksBefore: 0,
+          senderMetadataBlocksAfter: 0,
+        };
+      },
+      applyProxyReductionToInput: async (inputPayload: any) => {
+        inputPayload.input.push({
+          role: "user",
+          content: "reduction mutation survives",
+        });
+        return {
+          changedItems: 1,
+          changedBlocks: 1,
+          savedChars: 10,
+          diagnostics: {
+            skippedReason: "none",
+          },
+        };
+      },
+    },
+    logger: {
+      info: () => undefined,
+      warn: () => undefined,
+      error: () => undefined,
+      debug: () => undefined,
+    } as any,
+  });
+
+  assert.equal(
+    payload.input[payload.input.length - 1].content,
+    "reduction mutation survives",
+  );
+  assert.equal(prepared.payload.input[prepared.payload.input.length - 1].content, "reduction mutation survives");
+  assert.equal(prepared.requestEnvelope.messages[prepared.requestEnvelope.messages.length - 1].content, "reduction mutation survives");
 });
 
 test("recordStreamingUxEffect uses canonical request snapshots in char mode", async () => {

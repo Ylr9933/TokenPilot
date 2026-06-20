@@ -30,6 +30,7 @@
     "@tokenpilot/history": "workspace:*",
     "@tokenpilot/kernel": "workspace:*",
     "@tokenpilot/memory": "workspace:*",
+    "@tokenpilot/product-surface": "workspace:*",
     "@tokenpilot/runtime-core": "workspace:*"
   },
   "scripts": {

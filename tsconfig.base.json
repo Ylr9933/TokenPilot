@@ -29,6 +29,9 @@
             ],
             "@tokenpilot/host-adapter": [
                 "components/tokenpilot/packages/host-adapter/src/index.ts"
+            ],
+            "@tokenpilot/product-surface": [
+                "components/tokenpilot/packages/product-surface/src/index.ts"
             ]
         },
         "types": [

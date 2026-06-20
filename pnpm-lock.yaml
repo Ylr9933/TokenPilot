@@ -35,6 +35,9 @@ importers:
       '@tokenpilot/memory':
         specifier: workspace:*
         version: link:../../packages/layers/memory
+      '@tokenpilot/product-surface':
+        specifier: workspace:*
+        version: link:../../packages/product-surface
       '@tokenpilot/runtime-core':
         specifier: workspace:*
         version: link:../../packages/runtime-core
@@ -80,6 +83,15 @@ importers:
       '@tokenpilot/history':
         specifier: workspace:*
         version: link:../history
+
+  components/tokenpilot/packages/product-surface:
+    dependencies:
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../host-adapter
+      '@tokenpilot/runtime-core':
+        specifier: workspace:*
+        version: link:../runtime-core
 
   components/tokenpilot/packages/runtime-core:
     dependencies:

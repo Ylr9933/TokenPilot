@@ -6,6 +6,7 @@ export * from "./contracts/payload-codec.js";
 export * from "./contracts/session-resolver.js";
 export * from "./contracts/stream-codec.js";
 export * from "./contracts/capabilities.js";
+export * from "./contracts/product-surface.js";
 export * from "./pipeline/types.js";
 export * from "./pipeline/message-text.js";
 export * from "./pipeline/stable-prefix.js";

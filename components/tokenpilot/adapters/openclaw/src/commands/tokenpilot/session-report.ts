@@ -4,14 +4,11 @@ import { resolveSessionIdFromCommandScope } from "../../session/command-scope-ma
 import { loadRecentTurnBindingsFromState } from "../../session/turn-bindings.js";
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
+import { formatSessionReport, getNestedValue, toRecord } from "@tokenpilot/product-surface";
 import {
-  countModeLabel,
-  formatInt,
-  getNestedValue,
   pluginConfigRecord,
   resolveStateDir,
-  toRecord,
-} from "./shared.js";
+} from "./host-config-adapter.js";
 import { resolveOpenClawSessionsRegistryPath } from "../../context-stack/integration/openclaw-paths.js";
 
 function normalizeSessionRef(value: unknown): string {
@@ -157,30 +154,12 @@ export async function handleReport(ctx: any, currentConfig: Record<string, unkno
 
   const pluginCfg = pluginConfigRecord(currentConfig);
   const detailsEnabled = getNestedValue(pluginCfg, ["ux", "details"]) === true;
-  const latestCountMode = latest?.countMode ?? aggregate.latestCountMode ?? "litellm_tokens";
-  const unitLabel = countModeLabel(latestCountMode);
-  const savedCount = latestCountMode === "chars" ? aggregate.charSavedCount : aggregate.tokenSavedCount;
-  const optimizedTurns = latestCountMode === "chars" ? aggregate.charOptimizedTurns : aggregate.tokenOptimizedTurns;
-  const avgSavedPerOptimizedTurn = latestCountMode === "chars"
-    ? aggregate.avgSavedCharsPerOptimizedTurn
-    : aggregate.avgSavedTokensPerOptimizedTurn;
-  const lines = [
-    "TokenPilot report:",
-    `- session: ${sessionId}`,
-    `- saved ${unitLabel}: ${formatInt(savedCount)}`,
-    `- recorded turns: ${formatInt(aggregate.turns)}`,
-    `- optimized turns: ${formatInt(optimizedTurns)}`,
-    `- avg saved ${unitLabel} per optimized turn: ${formatInt(avgSavedPerOptimizedTurn)}`,
-  ];
-
-  if (detailsEnabled) {
-    if (latest?.details?.requestSavedCount !== undefined) {
-      lines.push(`- latest request savings: ${formatInt(latest.details.requestSavedCount)} ${unitLabel}`);
-    }
-    if (latest?.details?.responseSavedCount !== undefined) {
-      lines.push(`- latest response savings: ${formatInt(latest.details.responseSavedCount)} ${unitLabel}`);
-    }
-  }
-
-  return { text: lines.join("\n") };
+  return {
+    text: formatSessionReport({
+      sessionId,
+      aggregate,
+      latest,
+      detailsEnabled,
+    }),
+  };
 }

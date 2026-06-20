@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { runBeforeCallReductionOrchestrator } from "@tokenpilot/host-adapter";
+import { appendStabilityVisualSnapshot } from "@tokenpilot/product-surface";
 import { injectProceduralMemoryHints } from "./procedural-memory.js";
 import {
   createOpenClawPayloadCodec,
@@ -10,7 +11,6 @@ import { injectMemoryFaultProtocolInstructionsText } from "../page-in/recovery-p
 import type { UpstreamConfig } from "./upstream.js";
 import { normalizeResponsesInputForUpstream } from "./proxy-runtime-shared.js";
 import { recordProxyInbound } from "./proxy-runtime-logging.js";
-import { appendStabilityVisualSnapshot } from "../../commands/tokenpilot/session-visual-data.js";
 
 type ProxyRequestPreparation = {
   payload: any;

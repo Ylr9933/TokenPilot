@@ -62,7 +62,7 @@ import {
   appendStabilityVisualSnapshot,
   readVisualSessionData,
   readVisualSessionList,
-} from "./commands/tokenpilot/session-visual-data.js";
+} from "@tokenpilot/product-surface";
 
 export const TEST_WORKSPACE_DIR = "/tmp/tokenpilot-openclaw-plugin-tests";
 

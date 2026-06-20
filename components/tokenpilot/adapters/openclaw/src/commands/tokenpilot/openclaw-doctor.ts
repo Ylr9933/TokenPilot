@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { getNestedValue } from "@tokenpilot/product-surface";
 import { resolveOpenClawConfigPath, resolveOpenClawStateRoot } from "../../context-stack/integration/openclaw-paths.js";
-import { getNestedValue, pluginConfigRecord } from "./shared.js";
+import { pluginConfigRecord } from "./host-config-adapter.js";
 
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";

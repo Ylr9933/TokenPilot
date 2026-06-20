@@ -2,9 +2,9 @@
 import { createHash } from "node:crypto";
 import { dirname } from "node:path";
 import { mkdir, appendFile } from "node:fs/promises";
+import { appendReductionVisualSnapshot } from "@tokenpilot/product-surface";
 import { pluginStateSubdir } from "@tokenpilot/runtime-core";
 import { summarizeResponseFunctionCalls } from "./proxy-runtime-shared.js";
-import { appendReductionVisualSnapshot } from "../../commands/tokenpilot/session-visual-data.js";
 
 function buildRequestId(parts: unknown[]): string {
   return createHash("sha1").update(JSON.stringify(parts)).digest("hex").slice(0, 16);

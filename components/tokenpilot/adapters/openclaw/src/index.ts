@@ -66,7 +66,7 @@ import {
 } from "./context-stack/integration/tool-call-memo.js";
 import { appendTaskStateTrace } from "./trace/io.js";
 import { registerTokenPilotCommand } from "./commands/tokenpilot-command.js";
-import { appendEvictionVisualSnapshot } from "./commands/tokenpilot/session-visual-data.js";
+import { appendEvictionVisualSnapshot } from "@tokenpilot/product-surface";
 import { registerLayeredContextEngine, registerToolCallHooks, registerToolResultPersistHook } from "./plugin-register-hooks.js";
 import { __testHooks, contextSafeRecovery, proxyRuntimeHelpers } from "./plugin-test-support.js";
 import { createWorkspaceHintStore } from "./plugin-workspace-hints.js";

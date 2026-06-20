@@ -1,0 +1,690 @@
+{
+  "id": "tokenpilot",
+  "activation": {
+    "onStartup": true
+  },
+  "kind": "runtime",
+  "name": "TokenPilot Runtime Optimizer",
+  "version": "0.1.0",
+  "description": "Token-efficiency runtime plugin for OpenClaw with pluggable routing and optimization hooks.",
+  "contracts": {
+    "tools": [
+      "memory_fault_recover"
+    ]
+  },
+  "author": "TokenPilot",
+  "homepage": "https://github.com/Xubqpanda/TokenPilot",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "Enable TokenPilot plugin hooks."
+      },
+      "logLevel": {
+        "type": "string",
+        "enum": [
+          "info",
+          "debug"
+        ],
+        "default": "info",
+        "description": "Plugin log verbosity."
+      },
+      "proxyBaseUrl": {
+        "type": "string",
+        "description": "Optional OpenAI-compatible proxy base URL for routing (for example: http://127.0.0.1:8787/v1)."
+      },
+      "proxyApiKey": {
+        "type": "string",
+        "description": "Optional API key used with proxyBaseUrl.",
+        "sensitive": true
+      },
+      "stateDir": {
+        "type": "string",
+        "description": "Directory for TokenPilot plugin state (default prefers ~/.openclaw/tokenpilot-plugin-state, with legacy fallback)."
+      },
+      "debugTapProviderTraffic": {
+        "type": "boolean",
+        "default": false,
+        "description": "Debug only: tap outbound provider fetch requests/responses and write JSONL records."
+      },
+      "debugTapPath": {
+        "type": "string",
+        "description": "Path for provider traffic tap JSONL output."
+      },
+      "proxyAutostart": {
+        "type": "boolean",
+        "default": false,
+        "description": "Autostart embedded responses proxy when plugin starts."
+      },
+      "proxyPort": {
+        "type": "number",
+        "default": 17667,
+        "description": "Embedded responses proxy listen port."
+      },
+      "proxyMode": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Proxy behavior controls. pureForward=true keeps proxy as transport-only without request/response rewriting.",
+        "properties": {
+          "pureForward": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, disable proxy-side stability/reduction rewrites and only forward traffic."
+          }
+        }
+      },
+      "hooks": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Official hook integration switches.",
+        "properties": {
+          "beforeToolCall": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable before_tool_call default safety parameter injection."
+          },
+          "toolResultPersist": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable tool_result_persist artifact externalization for oversized tool results."
+          },
+          "dynamicContextTarget": {
+            "type": "string",
+            "enum": [
+              "developer",
+              "user"
+            ],
+            "default": "developer",
+            "description": "Where dynamic context should be injected for compatible requests."
+          }
+        }
+      },
+      "contextEngine": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Canonical-state context engine settings.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "pruneThresholdChars": {
+            "type": "number",
+            "default": 100000,
+            "description": "When estimated canonical chars exceed this threshold, prune older tool results."
+          },
+          "keepRecentToolResults": {
+            "type": "number",
+            "default": 5,
+            "description": "Number of latest tool results to keep unpruned in canonical state."
+          },
+          "placeholder": {
+            "type": "string",
+            "default": "[pruned]",
+            "description": "Placeholder text used when canonical pruning rewrites old tool results."
+          }
+        }
+      },
+      "ux": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "User-facing reporting controls.",
+        "properties": {
+          "details": {
+            "type": "boolean",
+            "default": false,
+            "description": "Show module-level savings details in report surfaces."
+          }
+        }
+      },
+      "modules": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Module-level switches for ablation and controlled experiments.",
+        "properties": {
+          "stabilizer": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable stabilizer telemetry module."
+          },
+          "policy": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable decision/policy module."
+          },
+          "reduction": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable reduction execution module."
+          },
+          "eviction": {
+            "type": "boolean",
+            "default": false,
+            "description": "Enable eviction execution module."
+          }
+        }
+      },
+      "eviction": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Task-level eviction policy controls for canonical history.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "noop",
+              "lru",
+              "lfu",
+              "gdsf",
+              "model_scored"
+            ],
+            "default": "noop"
+          },
+          "maxCandidateBlocks": {
+            "type": "number",
+            "description": "Reserved upper bound for candidate blocks when eviction planner is enabled."
+          },
+          "minBlockChars": {
+            "type": "number",
+            "description": "Reserved minimum chars for a message/block to be considered by eviction planner."
+          },
+          "replacementMode": {
+            "type": "string",
+            "enum": [
+              "pointer_stub",
+              "drop"
+            ],
+            "default": "pointer_stub",
+            "description": "How canonical task eviction replaces archived content: keep a pointer stub or drop the task bundle entirely."
+          }
+        }
+      },
+      "taskStateEstimator": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Incremental task-state estimator settings used to maintain session task lifecycle and drive registry-backed eviction.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "OpenAI-compatible base URL for the task-state estimator model."
+          },
+          "apiKey": {
+            "type": "string",
+            "sensitive": true,
+            "description": "API key used for task-state estimator requests."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model name used by the task-state estimator."
+          },
+          "requestTimeoutMs": {
+            "type": "number",
+            "default": 60000,
+            "description": "HTTP timeout for task-state estimator requests."
+          },
+          "batchTurns": {
+            "type": "number",
+            "default": 5,
+            "description": "Minimum pending raw turns required before running one estimator update."
+          },
+          "evictionLookaheadTurns": {
+            "type": "number",
+            "default": 3,
+            "description": "Hint horizon used when deciding whether a completed task can move to evictable."
+          },
+          "completedSummaryMaxRawTurns": {
+            "type": "number",
+            "default": 0,
+            "description": "Optional cap on how many recent raw turns remain in the estimator window before older completed/evictable tasks are represented through completedTaskSummaries."
+          },
+          "lifecycleMode": {
+            "type": "string",
+            "enum": [
+              "coupled",
+              "decoupled"
+            ],
+            "default": "coupled",
+            "description": "Whether the estimator directly predicts evictable or only predicts active/completed."
+          },
+          "evidenceMode": {
+            "type": "string",
+            "enum": [
+              "three_state",
+              "two_state"
+            ],
+            "default": "three_state",
+            "description": "Whether completed task evidence is retained for later tasks or hidden from the estimator/memory stack."
+          },
+          "evictionPromotionPolicy": {
+            "type": "string",
+            "enum": [
+              "fifo"
+            ],
+            "default": "fifo",
+            "description": "Promotion policy used in decoupled mode for completed -> evictable."
+          },
+          "evictionPromotionHotTailSize": {
+            "type": "number",
+            "default": 1,
+            "description": "How many most-recently completed tasks remain hot in completed state before FIFO promotion moves older ones to evictable."
+          },
+          "inputMode": {
+            "type": "string",
+            "enum": [
+              "sliding_window",
+              "completed_summary_plus_active_turns"
+            ],
+            "default": "completed_summary_plus_active_turns",
+            "description": "Estimator input construction mode. sliding_window feeds only the pending turn window; completed_summary_plus_active_turns feeds summaries of completed tasks plus all turns for unresolved tasks."
+          }
+        }
+      },
+      "memory": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Asynchronous procedural memory distillation and best-effort skill injection.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": false
+          },
+          "autoDistill": {
+            "type": "boolean",
+            "default": false,
+            "description": "Automatically enqueue evicted tasks for background procedural skill distillation."
+          },
+          "distillerType": {
+            "type": "string",
+            "enum": [
+              "prompting",
+              "autoskill",
+              "ctx2skill"
+            ],
+            "default": "prompting",
+            "description": "Skill distillation backend to use when memory distillation is enabled."
+          },
+          "batchSize": {
+            "type": "number",
+            "default": 2,
+            "description": "Maximum number of queued evicted tasks distilled in one background batch."
+          },
+          "topK": {
+            "type": "number",
+            "default": 0,
+            "description": "Maximum number of retrieved procedural skills injected per request."
+          },
+          "injectAsSystemHint": {
+            "type": "boolean",
+            "default": false,
+            "description": "Inject retrieved skills as a system message instead of prepending to the active user message."
+          },
+          "distillProvider": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "LLM provider used for procedural skill distillation. Defaults to taskStateEstimator provider when omitted.",
+            "properties": {
+              "baseUrl": {
+                "type": "string",
+                "description": "OpenAI-compatible base URL for skill distillation."
+              },
+              "apiKey": {
+                "type": "string",
+                "sensitive": true,
+                "description": "API key used for skill distillation."
+              },
+              "model": {
+                "type": "string",
+                "description": "Model name used for skill distillation."
+              },
+              "requestTimeoutMs": {
+                "type": "number",
+                "default": 60000,
+                "description": "HTTP timeout for skill distillation requests."
+              }
+            }
+          },
+          "embedding": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Optional embedding provider used to improve procedural skill retrieval.",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": false
+              },
+              "baseUrl": {
+                "type": "string",
+                "description": "OpenAI-compatible embeddings base URL."
+              },
+              "apiKey": {
+                "type": "string",
+                "sensitive": true,
+                "description": "API key used for procedural memory embeddings."
+              },
+              "model": {
+                "type": "string",
+                "description": "Embedding model name."
+              },
+              "queryInstruction": {
+                "type": "string",
+                "description": "Instruction prefix used for embedding retrieval queries."
+              }
+            }
+          }
+        }
+      },
+      "reduction": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Reduction engine controls for proxy execution path.",
+        "properties": {
+          "engine": {
+            "type": "string",
+            "enum": [
+              "layered"
+            ],
+            "default": "layered",
+            "description": "Reduction delegates pass execution to plugin-local execution pipeline."
+          },
+          "triggerMinChars": {
+            "type": "number",
+            "description": "Minimum chars to trigger reduction candidate generation in proxy bridge path."
+          },
+          "maxToolChars": {
+            "type": "number",
+            "description": "Target max chars for tool payload trim in layered reduction engine."
+          },
+          "passes": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Per-pass toggles for layered reduction experiments and ablations.",
+            "properties": {
+              "repeatedReadDedup": {
+                "type": "boolean",
+                "default": true
+              },
+              "toolPayloadTrim": {
+                "type": "boolean",
+                "default": true
+              },
+              "htmlSlimming": {
+                "type": "boolean",
+                "default": true
+              },
+              "execOutputTruncation": {
+                "type": "boolean",
+                "default": true
+              },
+              "agentsStartupOptimization": {
+                "type": "boolean",
+                "default": true
+              },
+              "memoryFaultRecovery": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          },
+          "passOptions": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Per-pass parameter overrides for thresholds, preview sizes, and recovery behavior.",
+            "properties": {
+              "repeatedReadDedup": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "headPreviewSize": {
+                    "type": "number"
+                  },
+                  "tailPreviewSize": {
+                    "type": "number"
+                  },
+                  "noteLabel": {
+                    "type": "string"
+                  },
+                  "archiveDir": {
+                    "type": "string"
+                  },
+                  "keepFirstRead": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "toolPayloadTrim": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "maxChars": {
+                    "type": "number"
+                  },
+                  "noteLabel": {
+                    "type": "string"
+                  },
+                  "stdout": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "stderr": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "json": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "blob": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "htmlSlimming": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "attributeWhitelist": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "execOutputTruncation": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "headPreviewSize": {
+                    "type": "number"
+                  },
+                  "tailPreviewSize": {
+                    "type": "number"
+                  },
+                  "noteLabel": {
+                    "type": "string"
+                  },
+                  "archiveDir": {
+                    "type": "string"
+                  },
+                  "toolThresholds": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "agentsStartupOptimization": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "memoryFaultRecovery": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "noteLabel": {
+                    "type": "string"
+                  },
+                  "stateDir": {
+                    "type": "string"
+                  },
+                  "maxRecoveriesPerTurn": {
+                    "type": "number"
+                  }
+                }
+              },
+              "formatSlimming": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "removeCodeFences": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "collapseBlankLines": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "trimTrailingSpaces": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "formatCleaning": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "pathTruncation": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "maxPathLength": {
+                    "type": "number"
+                  }
+                }
+              },
+              "imageDownsample": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "maxImageSizeKB": {
+                    "type": "number"
+                  },
+                  "maxSvgSizeKB": {
+                    "type": "number"
+                  }
+                }
+              },
+              "lineNumberStrip": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled"
+    },
+    "logLevel": {
+      "label": "Log Level"
+    },
+    "proxyBaseUrl": {
+      "label": "Proxy Base URL",
+      "placeholder": "http://127.0.0.1:8787/v1"
+    },
+    "proxyApiKey": {
+      "label": "Proxy API Key",
+      "sensitive": true
+    },
+    "stateDir": {
+      "label": "State Directory"
+    },
+    "debugTapProviderTraffic": {
+      "label": "Debug Tap Provider Traffic"
+    },
+    "debugTapPath": {
+      "label": "Debug Tap Path"
+    },
+    "proxyAutostart": {
+      "label": "Proxy Autostart"
+    },
+    "proxyPort": {
+      "label": "Proxy Port"
+    },
+    "proxyMode": {
+      "label": "Proxy Mode"
+    },
+    "hooks": {
+      "label": "Hooks"
+    },
+    "contextEngine": {
+      "label": "Context Engine"
+    },
+    "taskStateEstimator": {
+      "label": "Task State Estimator"
+    },
+    "reduction": {
+      "label": "Reduction"
+    }
+  }
+}

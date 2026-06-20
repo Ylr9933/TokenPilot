@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Clock</title>
+  <style>
+    :root {
+      --bg: #F5F5F5;
+      --size: 250px;
+      --label: #222;
+      --rim: #444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .world-clocks {
+      display: flex;
+      flex-direction: row;
+      gap: 28px;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      flex-wrap: nowrap;
+    }
+    .clock-card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .city {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--label);
+    }
+    .clock {
+      position: relative;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      background: #fff;
+      border: 8px solid var(--rim);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12), inset 0 0 0 2px rgba(0,0,0,0.03);
+    }
+    .tick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: var(--tick-color, #666);
+      transform-origin: center center;
+    }
+    .tick.minute {
+      width: 2px;
+      height: 10px;
+      margin-left: -1px;
+      margin-top: -125px;
+      opacity: 0.9;
+    }
+    .tick.hour {
+      width: 4px;
+      height: 16px;
+      margin-left: -2px;
+      margin-top: -125px;
+      opacity: 1;
+    }
+    .number {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-origin: center center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #222;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: -12px;
+      margin-top: -125px;
+      user-select: none;
+    }
+    .hand {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-origin: 50% 100%;
+      border-radius: 999px;
+    }
+    .hour-hand {
+      width: 6px;
+      height: 68px;
+      margin-left: -3px;
+      margin-top: -68px;
+      background: var(--hour-color);
+    }
+    .minute-hand {
+      width: 4px;
+      height: 92px;
+      margin-left: -2px;
+      margin-top: -92px;
+      background: var(--minute-color);
+    }
+    .second-hand {
+      width: 2px;
+      height: 110px;
+      margin-left: -1px;
+      margin-top: -110px;
+      background: var(--second-color);
+    }
+    .center-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      margin-left: -7px;
+      margin-top: -7px;
+      border-radius: 50%;
+      background: var(--second-color);
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="world-clocks" id="worldClocks"></div>
+  <script>
+    const config = {
+      clocks: [
+        { city: '北京', timezone_offset: 8, color: '#D32F2F' },
+        { city: 'London', timezone_offset: 0, color: '#1565C0' },
+        { city: 'New York', timezone_offset: -5, color: '#2E7D32' },
+        { city: 'Tokyo', timezone_offset: 9, color: '#F57F17' }
+      ],
+      clock_size: 250,
+      background: '#F5F5F5',
+      layout: 'horizontal'
+    };
+    document.documentElement.style.setProperty('--bg', config.background);
+    document.documentElement.style.setProperty('--size', config.clock_size + 'px');
+
+    const world = document.getElementById('worldClocks');
+    world.style.flexDirection = config.layout === 'vertical' ? 'column' : 'row';
+
+    function makeClock(entry) {
+      const card = document.createElement('div');
+      card.className = 'clock-card';
+      const city = document.createElement('div');
+      city.className = 'city';
+      city.textContent = entry.city;
+      const clock = document.createElement('div');
+      clock.className = 'clock';
+      clock.style.setProperty('--rim', entry.color);
+      clock.style.setProperty('--hour-color', entry.color);
+      clock.style.setProperty('--minute-color', entry.color);
+      clock.style.setProperty('--second-color', entry.color);
+      clock.style.setProperty('--tick-color', entry.color);
+
+      for (let i = 1; i <= 12; i++) {
+        const num = document.createElement('div');
+        num.className = 'number';
+        const angle = i * 30;
+        num.style.transform = `rotate(${angle}deg) translateY(-92px) rotate(${-angle}deg)`;
+        num.textContent = i;
+        clock.appendChild(num);
+      }
+      for (let i = 0; i < 60; i++) {
+        const tick = document.createElement('div');
+        tick.className = 'tick ' + (i % 5 === 0 ? 'hour' : 'minute');
+        tick.style.transform = `rotate(${i * 6}deg)`;
+        clock.appendChild(tick);
+      }
+      const hour = document.createElement('div'); hour.className = 'hand hour-hand';
+      const minute = document.createElement('div'); minute.className = 'hand minute-hand';
+      const second = document.createElement('div'); second.className = 'hand second-hand';
+      const center = document.createElement('div'); center.className = 'center-dot';
+      clock.append(hour, minute, second, center);
+      card.append(city, clock);
+      return { card, hour, minute, second, offset: entry.timezone_offset };
+    }
+
+    const clocks = config.clocks.map(makeClock);
+    clocks.forEach(c => world.appendChild(c.card));
+
+    function update() {
+      const now = new Date();
+      const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+      clocks.forEach(c => {
+        const local = new Date(utc + c.offset * 3600000);
+        const ms = local.getMilliseconds();
+        const s = local.getSeconds() + ms / 1000;
+        const m = local.getMinutes() + s / 60;
+        const h = (local.getHours() % 12) + m / 60;
+        c.hour.style.transform = `rotate(${h * 30}deg)`;
+        c.minute.style.transform = `rotate(${m * 6}deg)`;
+        c.second.style.transform = `rotate(${s * 6}deg)`;
+      });
+      requestAnimationFrame(update);
+    }
+    update();
+  </script>
+</body>
+</html>

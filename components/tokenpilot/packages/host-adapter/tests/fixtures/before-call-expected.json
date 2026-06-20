@@ -1,0 +1,27 @@
+{
+  "session": {
+    "host": {
+      "hostId": "fixture-host",
+      "displayName": "Fixture Host"
+    },
+    "sessionId": "session-1",
+    "sessionMode": "single"
+  },
+  "model": "lightmem2/gpt-5.4-mini",
+  "stream": true,
+  "instructions": "You are a coding assistant.\n\n[Recovery Protocol]",
+  "messages": [
+    {
+      "role": "user",
+      "content": "[Stable Prefix Applied] Please analyze the repository. [Reduced]"
+    }
+  ],
+  "rawPayload": {
+    "input": [
+      {
+        "role": "user",
+        "content": "Please analyze the repository."
+      }
+    ]
+  }
+}

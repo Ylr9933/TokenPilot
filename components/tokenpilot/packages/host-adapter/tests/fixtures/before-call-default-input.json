@@ -1,0 +1,27 @@
+{
+  "session": {
+    "host": {
+      "hostId": "fixture-host",
+      "displayName": "Fixture Host"
+    },
+    "sessionId": "session-2",
+    "sessionMode": "single"
+  },
+  "model": "lightmem2/gpt-5.4-mini",
+  "stream": true,
+  "instructions": "System bootstrap.\nYour working directory is: /tmp/demo/project\nRuntime: agent=main | model=lightmem2/gpt-5.4-mini",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Sender (untrusted metadata): ```json\n{\"agent\":\"main\"}\n```\n\nPlease analyze the repository."
+    }
+  ],
+  "rawPayload": {
+    "input": [
+      {
+        "role": "user",
+        "content": "Sender (untrusted metadata): ```json\n{\"agent\":\"main\"}\n```\n\nPlease analyze the repository."
+      }
+    ]
+  }
+}

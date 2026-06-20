@@ -13,19 +13,25 @@
         "baseUrl": ".",
         "paths": {
             "@tokenpilot/kernel": [
-                "packages/kernel/src/index.ts"
+                "components/tokenpilot/packages/kernel/src/index.ts"
             ],
             "@tokenpilot/decision": [
-                "packages/layers/decision/src/index.ts"
+                "components/tokenpilot/packages/layers/decision/src/index.ts"
             ],
             "@tokenpilot/history": [
-                "packages/layers/history/src/index.ts"
+                "components/tokenpilot/packages/layers/history/src/index.ts"
             ],
             "@tokenpilot/memory": [
-                "packages/layers/memory/src/index.ts"
+                "components/tokenpilot/packages/layers/memory/src/index.ts"
             ],
             "@tokenpilot/runtime-core": [
-                "packages/runtime-core/src/index.ts"
+                "components/tokenpilot/packages/runtime-core/src/index.ts"
+            ],
+            "@tokenpilot/host-adapter": [
+                "components/tokenpilot/packages/host-adapter/src/index.ts"
+            ],
+            "@tokenpilot/product-surface": [
+                "components/tokenpilot/packages/product-surface/src/index.ts"
             ]
         },
         "types": [

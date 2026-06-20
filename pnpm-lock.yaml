@@ -18,46 +18,29 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/kernel: {}
-
-  packages/layers/decision:
-    dependencies:
-      '@tokenpilot/history':
-        specifier: workspace:*
-        version: link:../history
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
-
-  packages/layers/history:
-    dependencies:
-      '@tokenpilot/kernel':
-        specifier: workspace:*
-        version: link:../../kernel
-
-  packages/layers/memory:
-    dependencies:
-      '@tokenpilot/history':
-        specifier: workspace:*
-        version: link:../history
-
-  packages/openclaw-plugin:
+  components/tokenpilot/adapters/openclaw:
     dependencies:
       '@tokenpilot/decision':
         specifier: workspace:*
-        version: link:../layers/decision
+        version: link:../../packages/layers/decision
       '@tokenpilot/history':
         specifier: workspace:*
-        version: link:../layers/history
+        version: link:../../packages/layers/history
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../../packages/host-adapter
       '@tokenpilot/kernel':
         specifier: workspace:*
-        version: link:../kernel
+        version: link:../../packages/kernel
       '@tokenpilot/memory':
         specifier: workspace:*
-        version: link:../layers/memory
+        version: link:../../packages/layers/memory
+      '@tokenpilot/product-surface':
+        specifier: workspace:*
+        version: link:../../packages/product-surface
       '@tokenpilot/runtime-core':
         specifier: workspace:*
-        version: link:../runtime-core
+        version: link:../../packages/runtime-core
     devDependencies:
       esbuild:
         specifier: ^0.25.10
@@ -69,8 +52,55 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  packages/runtime-core:
+  components/tokenpilot/packages/host-adapter:
     dependencies:
+      '@tokenpilot/kernel':
+        specifier: workspace:*
+        version: link:../kernel
+
+  components/tokenpilot/packages/kernel: {}
+
+  components/tokenpilot/packages/layers/decision:
+    dependencies:
+      '@tokenpilot/history':
+        specifier: workspace:*
+        version: link:../history
+      '@tokenpilot/kernel':
+        specifier: workspace:*
+        version: link:../../kernel
+
+  components/tokenpilot/packages/layers/history:
+    dependencies:
+      '@tokenpilot/kernel':
+        specifier: workspace:*
+        version: link:../../kernel
+      '@tokenpilot/runtime-core':
+        specifier: workspace:*
+        version: link:../../runtime-core
+
+  components/tokenpilot/packages/layers/memory:
+    dependencies:
+      '@tokenpilot/history':
+        specifier: workspace:*
+        version: link:../history
+
+  components/tokenpilot/packages/product-surface:
+    dependencies:
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../host-adapter
+      '@tokenpilot/runtime-core':
+        specifier: workspace:*
+        version: link:../runtime-core
+
+  components/tokenpilot/packages/runtime-core:
+    dependencies:
+      '@tokenpilot/decision':
+        specifier: workspace:*
+        version: link:../layers/decision
+      '@tokenpilot/host-adapter':
+        specifier: workspace:*
+        version: link:../host-adapter
       '@tokenpilot/kernel':
         specifier: workspace:*
         version: link:../kernel
